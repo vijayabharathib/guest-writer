@@ -251,18 +251,7 @@ sudo chown -R weeuser:weeuser .
 
 Apparently, use your id instead of `weeuser` in the command above.
 
-Clean the `Gemfile` a bit. You might want to remove lines `jbuilder` and `coffee-rails` as you may not need them. You need to add `guard`, `guard-minitest` and `guard-livereload` to the `group :development, :test do` group within the `Gemfile`. 
-
-```Gemfile
-group :development, :test do
-  # Leave buybug, capybara and selenium-webdriver
-  # ...
-  gem 'guard', '~>2.14.2'
-  gem 'guard-livereload','~>2.5.2'
-  gem 'guard-minitest', '~>2.4.6'
-```
-
-Stop the services with `docker-compose down` if they are running. To build them once again to take account of changes to the `Gemfile`, run this command:
+Stop the services with `docker-compose down` if they are running. **To build the image again if you make changes to the `Gemfile`**, run this command:
 
 ```bash
 docker-compose up --build
@@ -270,7 +259,7 @@ docker-compose up --build
 
 **Explore:** Docker starts to download and install all gems once again. There are ways to cache gems locally so that they do not need to be downloaded again. Some of the online solutions are a bit old and broken. You'll have to let me know when you find a solution. 
 
-But the good news is, **Yay! You are on rails!**. Open your favorite browser and point it at `localhost:3000` and you should see the whole world rejoicing at the sight of `Rails 5.1.5` and `Ruby 2.5`.
+But the good news is, **Yay! You are on rails!**. Open your favorite browser and point it at [http://localhost:3000] and you should see the whole world rejoicing at the sight of `Rails 5.1.5` and `Ruby 2.5`.
 
 ## Git It Up
 
@@ -307,39 +296,171 @@ git push -u origin staging
 ```
 That creates a new branch and checks it out. Pushes the branch to `origin`, which is another name for the GitHub repository on the server side.
 
-## Cloud Authentication by Auth0
+## Hot Reloading
 
-It is better to have Authentication from the start. It will force you to think about modeling records accordingly. This is where you can use the free-tier login given by [Auth0] to try it out.
+### Precious Gems
 
-### Auth0 Tenant and Client
+[Guard](https://github.com/guard/guard) gem helps watching for file changes and run appropriate commands based on which file has changed. There are plugins that allow you to take different actions for different files. [guard-minitest](https://github.com/guard/guard-minitest) allows you to run tests when test files or app files change. [guard-livereload](https://github.com/guard/guard-livereload) refreshes the page automatically when `css`, `js` or `erb` files change.
 
-If you have not done so already, sign up to [Auth0] and follow the instructions:
+Ensure the `Gemfile` reflects guard gems necessary for watching file changes. This will help hot reloading and automated testing.
 
-1. Sign up / Login to Auth0 
-2. Create a domain/tenant (tugboat)
-3. Create a client (secondstall)
+```Gemfile
+group :development, :test do
+  # ...
+  gem 'guard', '~>2.14.2'
+  gem 'guard-livereload','~>2.5.2'
+  gem 'guard-minitest', '~>2.4.6'
+```
+Usual drill to build the image to include these new gems. Use `docker-compose up --build`.
 
-While creating the client, select *Regular Web Application* as type. Once the client is created, within the list of technologies shown, select **Ruby On Rails**. [Auth0] shows the [Quick Start Guide](https://auth0.com/docs/quickstart/webapp/rails/01-login) for rails by default. 
-
-A cool feature within the guide is, it shows your client name and other details if you are logged in, unlike the generic guide linked above. You can reuse the code from the guide in most of the instructions used in this post, as the guide will show you code customized for your app and name you have chosen. 
-
-It also has instructions for some of the most commonly faced issues. It will come in handy if you run into any such issues, but for this tutorial, you may not run into any of those. The focus, for now, is on getting the authentication working and moving on to building the app.
-
-[Auth0] reaches our application through callback URLs. So it is **important** to tell Auth0 client what the callback URL will be. Under settings section, find a text box that asks for **Allowed Callback URLs** and add this:
+### Initiate a Guardfile 
+Get into a terminal. You need to set up `guard` to watch for file changes. Run the following command to get started.
 
 ```bash
-http://localhost:3000/auth/oauth2/callback
+docker-compose run app guard init livereload
 ```
 
-### Updates at Rails End
+That should create a `Guardfile` with instructions to watch for a list of extensions. Have a read through and you'll understand that the instructions target files that affect the redered page such as `css`, `js` or `erb`. 
 
-4. Add env variables to docker
-5. set callback URLs
-6. install gem dependencies (dc up --build)
-7. setup initializer middleware (auth0)
-8. setup controllers/pages/URLs to handle login/logout
-9. show how to persist user login
+Now that the `Guardfile` is ready, you can boot it up with this command.
 
+```bash
+docker-compose run -p 35729:35729 app bundle exec guard
+```
+That should show `guard is now watching at /app`. 
+
+But it is not necessary to open up a new terminal and run that command every time. That can be a service in itself. 
+
+### Guard Docker Service 
+
+Setup a guard service in your `docker-compose.yml` file.  You can take a copy of the `app` service we had earlier and amend it to look like this (within the same `docker-compose.yml` file of course).
+
+```yml
+  db:
+  ...
+  ...
+  app:
+  ...
+  ...
+  guard:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: bundle exec guard -i
+    volumes:
+      - .:/app
+    ports:
+      - "35729:35729"
+```
+
+Livereload server uses port `35729`. You just exposed it outside of the container.
+
+Bring the service down using `docker-compose down` and reboot it through `docker-compose up`. This should open up livereload in a separate service.
+
+### Livereload Browser Plugin
+
+On to browser now. Install livereload extension on the browser from [here](http://livereload.com/extensions/#installing-sections). It has extensions for major browsers.
+
+Once you install the extension, you should be able to get the extension as an icon on the toolbar to make it accessible. When you click on the extension button, the container running services from `docker-compose.yml` should show `INFO - Browser connected.`. That means, all pieces of the puzzle are now in place.
+
+![guard-disconnected](https://auth0.com/blog/rails/image_f31.png)
+![guard-connected](https://auth0.com/blog/rails/image_f32.png)
+
+Time to test it out. Also, time to get your own page on screen.
+
+### First Rails Controller
+
+Back on the terminal, run the following command to create a Controller along with an action named 'show'.
+
+```bash
+docker-compose run app rails g controller Home show
+```
+Note: Remember the drill to `chown` the files. Ensure you have edit access to the files.
+
+Have a good look at that default Ruby on Rails page. Because, **Yay! You are on Rails** is going bye bye and you'll replace it with a comfy home page the internet has ever seen.
+
+You can see Rails has added `get 'home/show'` by default within `config/routes.rb` file. Replace it with this now.
+
+```
+root 'home#show'
+```
+
+Now if you visit [http://localhost:3000] on your browser, or reload it once, it should show the default HTML page created when you generated the controller.
+
+Ensure that your container is up and running with all services. Especially the Guard one. Also, ensure browser is connected to the livereload server.
+
+Final test if Guard is really worth all the effort. Open `app/views/home/show.html.erb`, edit it to add your heart's content and save it.
+
+**Viola!** By the time you go back to the browser, it should already have the new content.
+
+![GIF of LiveReload]
+
+## Guard To Automate Tests
+
+You have already included necessary `guard-minitest` gem to automate running tests upon file changes. You just need to get the test environment ready.
+
+### Set up Test Environment
+
+Add this configuration to `config/database.yml`.
+
+```yaml
+default: &default
+  adapter: postgresql
+  encoding: unicode
+  host: db
+  user: postgres
+  port: 5432
+  password: 
+```
+
+This is to ensure the `db` service created within the docker container is used for database.
+
+And it is better to create a database upfront to avoid unnecessary error messages from Guard.
+
+```bash
+docker-compose run app rails db:create RAILS_ENV=test
+```
+
+### Initiate Guard Minitest 
+
+Just like what you've done to get livereload working, guard needs to be initiated watch for file changes to run tests when necessary.
+
+```bash
+docker-compose run app guard init minitest
+```
+
+That should add additional instructions to `Guardfile`. **Comment** the default instructions under `guard :minitest do` group and **un-comment** instructions generated for `Rails 4`. Despite being in Rails 5, those commands should work just ok.
+
+
+
+Now if you stop the services using `docker-compose down` and reboot them via `docker-compose up`, you should be able to see **guard running all tests** when it starts.
+
+...and the first and only test that you have, **should have failed**, if you followed on to the instructions above.
+
+```bash
+guard_1  | 1 runs, 0 assertions, 0 failures, 1 errors, 0 skips
+
+```
+
+Remember changing the `config/routes.rb` file to point root at `home#show` action? That's what causing the issue now. Update the file `test/controllers/home_controller_test.rb` to reflect the changes made to the `config/routes.rb` file earlier. 
+
+The test would have auto-generated line `get home_show_url`, just change it to `get root_url`. 
+
+
+```rb
+  ...
+  test "should get show" do
+    get root_url
+    assert_response :success
+  end
+  ...
+```
+
+Save the file and you should be able to see your tests being run by Guard. And this time, it should pass.
+
+```bash
+guard_1  | 1 runs, 1 assertions, 0 failures, 0 errors, 0 skips
+```
 
 [GitHub]: https://github.com/
 [Travis]: https://travis-ci.org/
