@@ -10,7 +10,7 @@ author:
   mail: "yajiv.vijay@gmail.com"
   avatar: "https://twitter.com/vijayabharathib/profile_image?size=original"
 related:
-- 2017-11-15-an-example-of-all-possible-elements
+- 2018-02-27-dockerized-workflow-ruby-on-rails-auth0-part2
 ---
 
 **TL;DR:** Workflow to bootstrap a full-stack database driven application using Ruby on Rails with external identify management. This article will make it easy to convert ideas into testable MVPs ([Minimum Viable Products](https://en.wikipedia.org/wiki/Minimum_viable_product)). 
