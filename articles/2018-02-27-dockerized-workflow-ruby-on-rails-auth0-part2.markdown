@@ -221,10 +221,69 @@ Click on that login button and it should take you to this beautiful page provide
 
 Once you give permission, it should redirect back to the same home page on your app.
 
-But this time, the `userinfo` from the session is printed for you on the page, along with email and name.  **Congratulations!** You have effectively setup a trustable cloud authentication system that you can build upon. 
+But this time, the `userinfo` from the session is printed for you on the page, along with email and name.  
+
+**Congratulations!** You have effectively setup a trustable cloud authentication system that you can build upon. 
 
 ![image of session info]()
 
+## Travis CI Integration
+
+Next up is to get help from a nice bot. [Travis] allows you to test the application when you commit new changes to [GitHub] repository or when you create pull requests and even when you merge pull requests.
+
+Once you setup a login within Travis-CI, you should be able to add your git repository to the list.
+
+Click on that small **+** button just beside **My repositories**. It should list down your git repositories. If you cannot find it, try **Sync Account** once.
+
+You can click on that small cog that denotes settings and you should be able to select when do you want to build.
+
+Switch on **Build only if .travis.yml is present** option. 
+
+and add a file named `.travis.yml` to the project root folder with this content:
+
+```yml
+language: ruby
+cache: bundler
+rvm:
+  - 2.5.0
+services:
+  - postgresql
+before_script:
+  - cp config/database.travis.yml config/database.yml
+  - psql -c 'create database auth0app_test;' -U postgres
+script:
+  - bin/rake db:migrate RAILS_ENV=test
+  - bin/rake 
+```
+
+Translating that, you are instructing travis to use `ruby`. `bundle install` is the one that'll take a long time, so you are caching that for future use. You are asking for a `postgresql` service to enable database.
+
+
+The actual `script` section enables database migration. You do not have any database yet, but worth making it future proof. 
+
+Before anything runs, you've instructed travis to use the new `database.travis.yml` and the default `database.yml`. You've also created a database for test region. This is required as the original one is adapted to run tests locally in your docker container test environment:
+
+```yml
+test:
+  adapter: postgresql
+  database: auth0app_test
+```
+
+**Commit and push** your changes to `staging` branch. You should see travis coming alive once the changes are pushed.
+
+The first build **failed!**. Get comfortable reading through the error messages on the Travis build log.
+
+You can see that missing `RAILS_MASTER_KEY` is the reason. You can set it up on Travis repository settings page. You can access it under 'more options' menu.
+
+Under **Environment Variables** section, add a variable named `RAILS_MASTER_KEY` and add the value from your key file stored at `config/secrets.yml.key`. Ensure you disable `Display value in build log`, that would defeat the whole purpose of keeping secrets.
+
+Go back to the **Current** tab and use the option **Restart Build**.
+
+You should see a **green and happy** badge showing the test was successful. 
+
+It took over 3 minutes originally and you should see it coming down next time onwards when the cache is used.
+
+Now that your own quality gate is ready, you can move on to publishing your application.
 
 ## Dev Workflow
 
