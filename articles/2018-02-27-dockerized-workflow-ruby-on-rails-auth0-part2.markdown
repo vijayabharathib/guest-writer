@@ -285,13 +285,110 @@ It took over 3 minutes originally and you should see it coming down next time on
 
 Now that your own quality gate is ready, you can move on to publishing your application.
 
-## Dev Workflow
+## Go Live With Heroku
 
-### Git Workflow
-* maintain a staging branch in github
-* commits to staging branch shoult be tested 
-* commits that are passing through tests should be deployed to heroku
-* pull requests from staging to master 
+Heroku allows you to create apps for staging and production environment. It also allows automatic deployment from different branches. Free tier allows you to run your app in production mode and test it out.
+
+Sign up to [Heroku] first and set up a link to your GitHub profile. You can do this within **Applications** tab in **Account Settings**.
+
+Once a link to GitHub profile is in place, create a new pipeline. While creating the pipeline, you'll have an option to connect to a GitHub repository. Connect to the repository where you've stored the app.
+
+### Setup Staging App
+
+Within the pipeline, **create app** under staging area. Once you create the app, you'll have an option to **configure automatic deployment**. Select `staging` branch for automatic deployment and check the option to **wait for CI**.
+
+Now that your staging app is ready, click through to the detailed app page. There you'll have fine grained control over all aspects of the application. 
+
+For now, add a **Postgres** addon under **Resources** tab. 
+
+Your next stop should be **Settings** tab where you can **Reveal Config Vars**. You should be able to see a `DATABASE_URL` in there, which was added by default when you added **Heroku Postgres** addon. But where does this environment variable go? That would be the `config/database.yml` file.
+
+Change the `production` section to look like this:
+
+```yml
+# ...
+production:
+  url: <%= ENV['DATABASE_URL'] %>
+```
+
+That should also remind you about the `RAILS_MASTER_KEY`. The same **Config Vars** section allows you to add that as a key and the value for the key will be from `config/secrets.yml.key`.
+
+Commit the change to `database.yml` file and push it to staging branch. 
+
+This is probably the highest point of the movie. You should be able to see a lot of things coming together. You can watch these live:
+
+* Travis tests the new changes
+* Heroku Pipeline page shows *One check pending*
+* Heroku starts to build the app once Travis tests are completed.
+* Heroku shows a hash for the deployed version.
+
+**You are almost there!** Now you should be able to open the app in the browser. Heroku shows that as an option on the menu. 
+
+Just one problem. The *Login* link on the home page is broken. But a helpful message **Calback URL mismatch** is shown by Auth0. That's the hint.
+
+Go back to your Auth0 client and add the callback URL shown on the error page. Now the **Allowed Callback URLs** box should look like:
+
+```
+http://localhost:3000/auth/oauth2/callback,https://shelf3stage.herokuapp.com/auth/oauth2/callback
+```
+
+**Remember to save** the changes to settings. That covers both local and staging environment. 
+
+If you go back to the app on the browser and click on **Login** link now, you should see the familiar Auth0 login page. If you try and login, it should come back to the app with the home page showing plain text details of the login.
+
+That's it. 
+
+### Setup Production Region
+
+There is nothing new here. You have already done all that in the staging area. You'll have to repeat the steps.
+
+* Create another application under **production** section. 
+* Use **Configure automatic deployment** option to select deployment from `master` branch this time. 
+* Remember to enable **wait for CI**.
+* Add a **Heroku Postgres** addon.
+* **No need** to touch `database.yml`. You are already covered there.
+* Add `RAILS_MASTER_KEY` config var.
+
+But how do you deploy something to production? That's when you go back to a very well known workflow on GitHub.
+
+You create a [Pull Request](https://help.github.com/articles/creating-a-pull-request/) on your repository. Helpfully, GitHub shows a message that shows recently published branches, along with an option to **Compare and Pull Request**.  Click on that and it should take you to a new pull request page.
+
+Give it a good title and description. Watch out for the message **Able to merge** with a green tick. That's a sign that `master` branch can receive changes from your `staging` branch. This will be helpful when more than one person gets to push changes.
+
+Once you create the pull request, the detailed PR page shows **One check pending** and starts to build and test the project via Travis CI.
+
+Note: testing the pull request takes time as the bundler cache is not used from staging branch.
+
+Once all Travis Tests are over, you'll see **All checks** have passed with the merge button turning bright green. You can now safely merge the pull request to `master` branch.
+
+Once the pull request is merged, Travis starts the final test. You can **watch the magic** as it unfolds within the Heroku pipeline page.
+
+Now, use the **Open app in browser** option from Heroku app. You should see the familiar page. And if you click on the **Login** link, you should see familiar failure!
+
+Auth0 callback URL mismatch. Take that URL shown on that error page and add it to **Allowed Callback URLs** section within Auth0 client.
+
+It looks like this now:
+
+```
+http://localhost:3000/auth/oauth2/callback,https://shelf3stage.herokuapp.com/auth/oauth2/callback,https://shelf3prod.herokuapp.com/auth/oauth2/callback
+```
+
+Back at the browser, if you load the production application and try **Login**, you should get the user details back on home screen.
+
+So much for a full scale workflow. You are done. From here on out, building your app is where you'd spend your time.
+
+You can expect to spare little time on deployment.
+
+### To The Explorer In You
+
+As you navigate through Heroku pages, you'll see an option for **Review Application**. That'll help you create apps for each pull request, just to see how your application will look like once the pull request is merged.
+
+There are also options to create containers within Heroku and use the local docker image you have created. Explore and remember to let me know if you run into something interesting.
+
+## Developing the App (WorkInProgress)
+* Create Books and Shelves as resources. 
+* Push to staging and watch it auto deploy
+* Create pull requests to master and let it auto deploy to production
 
 ### Debugging
 * show how to use `logger.debug`
@@ -299,44 +396,10 @@ Now that your own quality gate is ready, you can move on to publishing your appl
 * show how to use `byebug`
 * show how to open up `rails console` within docker
 
-### Live Reload
-* Introduce live reloading with guard
-
-## Continuous Testing on Travis CI
-
-* add .travis.yml
-* create a separate database.yml file for travis (as the original one uses local test environment on docker, host name wouldn't match)
-* postgres should be added as a service to travis
-* before script can be used to create database
-* db:migrate is required as first script before test runs (to create a working database copy)
-* it is better to let travis build a new environment, but look into caching when necessary
-
-## Deploy to Heroku
-
-### New Heroku Pipeline Architecture
-* Create a new heroku account
-* Explain the concept of pipelines in Heroku
-* Create a new pipeline
-
-### Setting Up Staging
-* create a staging app within the pipeline
-* Create a postgres addon
-* That creates a DATABASE_URL config var
-* while creating it, connect to github repository
-* enable automatic deploy
-* deploy manually once
-* Use that "DATABASE_URL" var within database.yml
-* run "rails db:migrate" within console given in heroku
-* Change the code and commit
-* It should trigger a build
-* Use the log menu under options to check logs
-
-### Setting Up Production 
-* Repeat heroku instructions above for production app within the pipeline.
-* Link production to `master` branch of git repository.
-* Change the app and deploy to staging
-* Create a pull request in master branch
-* Check automatic deployment to heroku
+### Allow users to move books to shelf
+* Wire in user creation based on login. 
+* Allow valid users to create books.
+* Allow users to move books between shelves after login.
 
 ## Conclusion
 Takes us to the end of workflow where changes are automatically tested locally. Commits to staging is tested and deployed to staging environment. Merged pull requests in master trigger another deployment to production.
