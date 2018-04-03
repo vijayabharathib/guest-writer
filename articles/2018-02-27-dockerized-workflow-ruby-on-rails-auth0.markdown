@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "Ruby on Rails - Killer Workflow with Docker (Part 1)"
-description: "Using docker reduces time spent on installation and configuration. You just dive right into building products."
+description: "Learn how to set up a killer dockerized workflow that will raise your productivity while developing Ruby on Rails applications."
 date: "2018-02-27 08:30"
 category: Ruby On Rails, Docker, Auth0, Travis CI, CI/CD
 author:
@@ -13,7 +13,7 @@ related:
 - 2018-02-27-dockerized-workflow-ruby-on-rails-auth0-part2
 ---
 
-**TL;DR:** Workflow to bootstrap a full-stack database driven application using Ruby on Rails with external identify management. This article will make it easy to convert ideas into testable MVPs ([Minimum Viable Products](https://en.wikipedia.org/wiki/Minimum_viable_product)). 
+**TL;DR:** In this article, you'll learn how to setup a dockerized Workflow to bootstrap a full-stack database driven application using Ruby on Rails with external identify management. It will help you convert ideas into testable MVPs ([Minimum Viable Products](https://en.wikipedia.org/wiki/Minimum_viable_product)) in no time. 
 
 You will be able to build a small shelf and fill them with books in the process. You can have a look at the app [here](https://bookstall.herokuapp.com/) and  this [repository on GitHub](https://github.com/vijayabharathib/auth0_rails_docker) has the code and configuration of the finished product.
 
@@ -25,18 +25,18 @@ The objective is to optimize for developer happiness. Ruby on Rails fits the bil
 
 **1. Docker**
 
-You need to get [docker installed](https://docs.docker.com/install/). Use `docker -v` to verify you have a working version of docker. The one I have is `Docker version 17.12.0-ce, build c97c6d6`. You'll know more about docker in a minute (or in an hour if you have to go through all the setup here).
+You need to get [docker installed](https://docs.docker.com/install/). Use `docker -v` to verify you have a working version of docker. The one I have is `Docker version 17.12.0-ce, build c97c6d6`. You'll know more about docker in a minute. Installing and getting to know docker is a great investment of your time. You'll receive returns in multiples as you start to use docker for all your projects.
 
 **2. Docker Compose**
 
-Next one is to install [Docker compose](https://docs.docker.com/compose/install/). It will allow you to piece multiple services together. Try `docker-compose -v` to ensure a working version. Here is the result from my terminal: `docker-compose version 1.16.1, build 6d1ac21`.
+Next one is to install [Docker compose](https://docs.docker.com/compose/install/). It will allow you to orchestrate multiple docker services together. Try `docker-compose -v` to ensure a working version. Here is the result from my terminal: `docker-compose version 1.16.1, build 6d1ac21`.
 
 **3. Free Tier Login Accounts**
 
-  * [GitHub]
-  * [Travis]
-  * [Heroku]
-  * [Auth0]
+  * [GitHub] - to store your code in the cloud
+  * [Travis] - to build and test your changes
+  * [Heroku] - to deploy your app to cloud
+  * [Auth0] - to manage identity of your users
 
 None of them should cost you a dime for following this workflow!
 
@@ -68,7 +68,7 @@ The bottom-line, pull an image and get down to business. Your business could be,
 
 Now, think about other solutions that solve similar problem. You might have used a *dual-boot* PC that runs both Windows and Linux. You would have switched between them when required.
 
-Another solution is the VirtualBox that allows you to run entirely full scale guest OS on top of your host OS.
+Another solution is the [VirtualBox](https://www.virtualbox.org/) that allows you to run entirely full scale guest OS on top of your host OS.
 
 These are not bad solutions. It is just that Docker is a leaner solution compared to these full scale OS images if you just want to have a uniform runtime environment. Moreover, there is no automated way to configure each OS the same way, unless you do it manually, which may lead to different configurations at scale.
 
@@ -119,7 +119,7 @@ The first command builds an image based on the instructions you've given in the 
 
 Second command boots the image into a container, which is like giving life to the image. Can't help it, but it is identical to creating an object out of a class! `-it` flag gives you an interactive terminal access *inside* the container. 
 
-That should take you to the shell prompt that shows something in the lines of `root@abc123a1234b:/# `. That means you are inside the container, **with root access**. *Just be careful what you command the prompt to do!*
+That should take you to the shell prompt that shows something in the lines of `root@abc123a1234b:/# `. That means you are inside the container, **with root access**. It is quite easy to expose your host root directory as a volume and it becomes editable within the container. *Just be careful what you command the prompt to do!*
 
 Now run `ruby -v` inside the shell to get the ruby version. Did you get `ruby 2.5.0...`? What about `node -v`? Did you get `v8.10`? 
 
@@ -145,7 +145,7 @@ RUN bundle install
 COPY . /project
 ```
 
-**Tip**: Each `RUN` command creates a layer. It is usually a best practice to put most of those commands together in one line to avoid layers within the image. For example, `RUN apt-get update -qq & apt-get install -y nano build-essential libpq-dev` and so on. 
+**Tip**: Each command in the `Dockerfile` creates a layer. While layers created by commands such as `WORKDIR` as discarded towards final build, layers by `ADD`, `RUN` and `COPY` are retained and may increase the size of final image. It is usually a [best practice](https://docs.docker.com/develop/develop-images/dockerfile_best-practices/) to put most of those commands together in one line to avoid layers within the image. For example, `RUN apt-get update -qq & apt-get install -y nano build-essential libpq-dev` and so on. 
 
 Here is what's going on:
 
@@ -159,7 +159,7 @@ Here is what's going on:
 * Run `bundle install` inside the project folder. This will install necessary gems inside the container.
 * Copy rest of the content from your host folder to container app folder.
 
-Note that copying only `Gemfile` and `Gemfile.lock` to app folder before running `bundle install` has **tremendous advantage**. Changes to the other files within the application folder do not trigger `bundle install`.Only if the `Gemfile` or `Gemfile.lock` changes, `bundle install` will be triggered. 
+Note that installing OS specific tools and copying only `Gemfile` and `Gemfile.lock` to app folder before running `bundle install` has **tremendous advantage**. Changes to the other files within the application folder do not trigger `bundle install`. Only if the `Gemfile` or `Gemfile.lock` changes, `bundle install` will be triggered. 
 
 If you think deeply enough, you'll understand that it will save hours. If thinking deeply hurts, just try moving the command `COPY . /project` line just above `bundle install`. Every time you make even a small change within app folder, the container has to be built with all the gems being installed from scratch. This hurts more!
 
@@ -205,7 +205,7 @@ All right, another set of descriptions for instructions within the `docker-compo
 
 ### All New Rails Project
 
-Start by building the containers. For that you need to add:
+Start by building the containers. For that you need to add two empty files to the **project root folder**:
 
 1. an empty `Gemfile`
 2. an empty `Gemfile.lock`.
@@ -217,7 +217,7 @@ source 'https://rubygems.org'
 gem 'rails', '~>5.1.5'
 ```
 
- **Once those empty files are in place**, run this on your terminal:
+`Gemfile.lock` is auto populated during the build process and it locks gem dependencies to particular versions. You don't ever have to touch that `Gemfile.lock` again. **Once those files are in place**, run this on your terminal:
 
 ```
 docker-compose up --build
@@ -254,42 +254,47 @@ Docker build picks up from where changes happened. The only change is on `Gemfil
 
 **Explore:** Docker starts to download and install all gems once again. There are ways to cache gems locally so that they do not need to be downloaded again. Some of the online solutions are a bit old and broken. You'll have to let me know when you find a solution. 
 
-But the good news is, **Yay! You are on rails!**. Open your favorite browser and point it at [http://localhost:3000] and you should see the whole world rejoicing at the sight of `Rails 5.1.5` and `Ruby 2.5`.
+But the good news is, **Yay! You are on rails!**. Open your favorite browser and point it at [http://localhost:3000](http://localhost:3000) and you should see the whole world rejoicing at the sight of `Rails 5.1.5` and `Ruby 2.5`.
 
 **Remember to re-build the image again if you make changes to the `Gemfile`**.
 
 ### Own The Files
 
-All the files generated will be owned by `root`. Run `ls -la` within the terminal to look at who owns the files. Another way is to try and edit one of the generated files. If they are owned by a user other than yourself, you will have to go down the `sudo` route to get them `chown`ed. Run this command on your terminal within the application folder:
+Based on the docker settings and user groups, files generated may be owned by `root` user. In such cases, you may get **Permission denied** errors while trying to edit project files created by Rails. 
+
+One way to find out is to run `ls -la` within the terminal to look at who owns the files. Another way is to try and edit one of the generated files. 
+
+If they are owned by a user other than yourself, you will have to go down the `sudo` route to get them `chown`ed. Run this command on your terminal within the application folder:
 
 ```bash
 sudo chown -R weeuser:weeuser .
 ``` 
 
-Apparently, use your id instead of `weeuser` in the command above.
+Remember to use your user id instead of `weeuser` in the command above.
 
 ## Git It Up
 
 A working configuration of a brand new Rails project is usually very easy. As you saw, it just took a simple `rails new` command within the container. But it has done so much work for you, so much that it warrants a git commit.
 
 ```bash
-git init
 git add --all
 git commit -am "first working copy"
 ```
 
-That initiates git repository within the current folder. Adds all the files to staging area and commits the changes with a readable comment.
+That adds all the files to staging area and commits the changes with a readable comment.
 
-If you look closely, Rails automatically initiated the repository. It has also generated a `.gitignore` file for you with pre-populated instructions as to which folders to ignore. This file ensures unnecessary folders and files, such as log files, are kept out of the repository.
+If you look closely, you did not initiate a repository with `git init` as you'd normally do. Rails automatically initiated the repository. It has also generated a `.gitignore` file for you with pre-populated instructions as to which folders to ignore. This file ensures unnecessary folders and files, such as log files, are kept out of the repository.
 
-Now create a new repository within [GitHub]. Just create an empty one, no need to create any `README.md` or `.gitignore` files on the GitHub server. They are already there on your local machine.
+Now create a new repository within [GitHub]. Just **create an empty** one, no need to create any `README.md` or `.gitignore` files on the GitHub server. They are already there on your local machine.
 
-GitHub automatically shows these instructions. Run these on your terminal to push your changes to GitHub. 
+GitHub shows instructions to add an existing repository when you create a new one. Run these on your terminal to push your changes to GitHub. 
 
 ```bash
 git remote add origin git@github.com:user_name/repo_name.git
 git push -u origin master
 ```
+
+Just ensure you use your own GitHub user name and repository name in the command above. It is easier to copy the URL shown on GitHub.
 
 Once `push` is complete, refresh GitHub repository page to see the files committed. Now that they are on the cloud, we can say it is much more safe to play around with the local copy.
 
@@ -391,6 +396,7 @@ Back on the terminal, run the following command to create a Controller along wit
 ```bash
 docker-compose run --user $(id -u):$(id -g) app rails g controller Home show
 ```
+You can run as many such commands on your host terminal while leaving `docker-compose up` to serve rails app on a separate terminal. You only have to **restart** if you make major changes to the app such as adding database migrations or new gems.
 
 Have a good look at that default Ruby on Rails page. Because, **Yay! You are on Rails** is going bye bye and you'll replace it with most useful and comfy home page the internet has ever seen.
 
@@ -400,15 +406,32 @@ You can see Rails has added `get 'home/show'` by default within `config/routes.r
 root 'home#show'
 ```
 
-Now if you visit [http://localhost:3000] on your browser, or reload it once, it should show the default HTML page created when you generated the controller.
+Now if you visit [http://localhost:3000](http://localhost:3000) on your browser, or reload it once, it should show the default HTML page created when you generated the controller.
 
 Ensure that your container is up and running with all services. Especially the Guard one. Also, ensure browser is connected to the livereload server.
 
 Final test if Guard is really worth all the effort. Open `app/views/home/show.html.erb`, edit it to add your heart's content and save it.
 
-**Viola!** By the time you go back to the browser, it should already have the new content.
+**Voilà!** By the time you go back to the browser, it should already have the new content.
 
 ![GIF of LiveReload]
+
+**Tip:** Sometimes the container serving Rails app through `rails s` may not close and clean up properly if the container was not shutdown properly. In such cases, you might see an error that looks like this:
+
+```bash
+app_1    | A server is already running. Check /project/tmp/pids/server.pid.
+app_1    | => Booting Puma
+#...
+app_1    | Exiting
+auth0railsapp_app_1 exited with code 1
+```
+
+There in lies the clue. Rails server stores process id within the `tmp/pids/server.pid` file. You may need to manually delete that file and restart the services using :
+
+```bash
+docker-compose down
+docker-compose up
+```
 
 ## Guard To Automate Tests
 
