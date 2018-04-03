@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "Ruby on Rails - Killer Workflow with Docker (Part 2)"
-description: "Using docker reduces time spent on installation and configuration. You just dive right into building products."
+description: "Learn how to set up a killer dockerized workflow that will raise your productivity while developing Ruby on Rails applications."
 date: "2018-02-27 08:30"
 category: Ruby On Rails, Docker, Auth0, Travis CI, CI/CD
 author:
@@ -386,15 +386,71 @@ As you navigate through Heroku pages, you'll see an option for **Review Applicat
 There are also options to create containers within Heroku and use the local docker image you have created. Explore and remember to let me know if you run into something interesting.
 
 ## Developing the App (WorkInProgress)
-* Create Books and Shelves as resources. 
-* Push to staging and watch it auto deploy
-* Create pull requests to master and let it auto deploy to production
 
-### Debugging
+Take in another cup of your favorite drink. You are going put the authentication to good use in this last mile of the run.
+
+The idea is to allow users to move books between shelves. Now you can create necessary models with the usual commands. You'd just need three models:
+
+* A model for Users
+* A model for Books
+* Another one for Shelf
+
+While it is possible to run commands from the host terminal by creating a temporary container each time, it may not be the quickest solution. It is better to get into a bash prompt in the terminal within the container.
+
+Run this while you are inside the app folder:
+
+```bash
+docker-compose run --rm --user $(id -u):$(id -g) app /bin/bash
+```
+
+That should take you to a terminal within the container. 
+ 
+Now you can run rails commands as usual. Go ahead and create three models.
+
+```bash
+rails g model User email:string
+rails g model Book name:string
+rails g model Shelf place:integer user:references book:references
+```
+
+That should create database migration files, models and tests. Before you apply the migrations to the database, **there is one important addition** to the shelves migration file.  Add an index to mark the combination of book and user as a unique combination.
+
+Note: `rails g scaffold Book name:string` will create all the routes, controller and actions along with view files. Try it and see if you'd like it.
+
+```rb
+# db/migrate/2018...._create_shelves.rb
+class CreateShelves < ActiveRecord::Migration[5.1]
+  def change
+    create_table :shelves do |t|
+     # ...
+    end
+
+    add_index :shelves, [:book_id,:user_id], unique: true
+  end
+end
+```
+
+Of course, you might want to think about a proper indexing strategy for other models.
+
+Now that the database is ready, you can tell your app that such a model exists and how to respond to users when they ask for it.
+
+First stop is to **set up the routes**. Add `resources :books` line to the file `config/routes.rb`. In case you are curious, try loading `http://localhost:3000/books` now. It'll show an error along with available routes. You'll be able to see the number of routes setup by this simple addition. That page also guides you to the next stop.
+
+Adding a controller for books.
+
+## Debugging
 * show how to use `logger.debug`
 * show how to use `inspect` within views
 * show how to use `byebug`
 * show how to open up `rails console` within docker
+### web-console 
+config.web_console.whitelisted_ips = [ '172.19.0.1'] - **but this would break** for other developers. better go via environments route.
+
+insert `<%= console %>` in any erb file and when you visit that file, you'll get access to terminal.
+
+**Only on dev environment** as the ruby code is executed remotely on the server. 
+
+More on debugging in the [Rails Guides](http://guides.rubyonrails.org/debugging_rails_applications.html)
 
 ### Allow users to move books to shelf
 * Wire in user creation based on login. 

@@ -13,19 +13,19 @@ related:
 - 2018-02-27-dockerized-workflow-ruby-on-rails-auth0-part2
 ---
 
-**TL;DR:** In this article, you'll learn how to setup a dockerized Workflow to bootstrap a full-stack database driven application using Ruby on Rails with external identify management. It will help you convert ideas into testable MVPs ([Minimum Viable Products](https://en.wikipedia.org/wiki/Minimum_viable_product)) in no time. 
+**TL;DR:** In this article, you'll learn how to set up a dockerized Workflow to bootstrap a full-stack database driven application using Ruby on Rails with external identity management. It will help you convert ideas into testable MVPs ([Minimum Viable Products](https://en.wikipedia.org/wiki/Minimum_viable_product)) in no time. 
 
-You will be able to build a small shelf and fill them with books in the process. You can have a look at the app [here](https://bookstall.herokuapp.com/) and  this [repository on GitHub](https://github.com/vijayabharathib/auth0_rails_docker) has the code and configuration of the finished product.
+You will be able to build a small shelf and fill them with books in the process. You can have a look at the app [here](https://bookstall.herokuapp.com/) and this [repository on GitHub](https://github.com/vijayabharathib/auth0_rails_docker) has the code and configuration of the finished product.
 
 ## Development Workflow
 
-The objective is to optimize for developer happiness. Ruby on Rails fits the bill. You'll setup a workflow that makes it easy to configure, test, debug and deploy.  Also, you will enter the world of [continuous deployment](https://en.wikipedia.org/wiki/Continuous_delivery) where commits are deployed automatically on successful test runs.
+The objective is to optimize for developer happiness. Ruby on Rails fits the bill. You'll set up a workflow that makes it easy to configure, test, debug and deploy.  Also, you will enter the world of [continuous deployment](https://en.wikipedia.org/wiki/Continuous_delivery) where commits are deployed automatically on successful test runs.
 
 ### Tech Stack
 
 **1. Docker**
 
-You need to get [docker installed](https://docs.docker.com/install/). Use `docker -v` to verify you have a working version of docker. The one I have is `Docker version 17.12.0-ce, build c97c6d6`. You'll know more about docker in a minute. Installing and getting to know docker is a great investment of your time. You'll receive returns in multiples as you start to use docker for all your projects.
+You need to get [docker installed](https://docs.docker.com/install/). Use `docker -v` to verify you have a working version of docker. The one I have is `Docker version 17.12.0-ce, build c97c6d6`. You'll know more about docker in a minute. Installing and getting to know docker is a great investment of your time. You'll receive returns in multiples as you start to use Docker for all your projects.
 
 **2. Docker Compose**
 
@@ -36,7 +36,7 @@ Next one is to install [Docker compose](https://docs.docker.com/compose/install/
   * [GitHub] - to store your code in the cloud
   * [Travis] - to build and test your changes
   * [Heroku] - to deploy your app to cloud
-  * [Auth0] - to manage identity of your users
+  * [Auth0] - to manage the identity of your users
 
 None of them should cost you a dime for following this workflow!
 
@@ -62,17 +62,17 @@ Sometimes, it just boils down to having a simple text file named `Dockerfile` wi
 
 Let's say you need Ruby runtime on Ubuntu. Pull an Ubuntu image and install Ruby on top. Wait, isn't that what we do already? Yes. So, here is one better. How about pulling an image that already has Ruby on top of Ubuntu. Now we are talking? How about pulling an image that has Ruby and NodeJS on top of a Debian flavor? Sweet. From there onwards, the same image can be used across multiple projects as separate containers.
 
-The bottom-line, pull an image and get down to business. Your business could be, finally, building that app. Tweaking configurations may not be a productive way to spend a whole evening, thought that's exactly what you might end up doing in certain cases.
+The bottom-line, pull an image and get down to business. Your business could be, finally, building that app. Tweaking configurations may not be a productive way to spend a whole evening, though that's exactly what you might end up doing in certain cases.
 
 ### Docker Vs Virtual OS
 
-Now, think about other solutions that solve similar problem. You might have used a *dual-boot* PC that runs both Windows and Linux. You would have switched between them when required.
+Now, think about other solutions that solve a similar problem. You might have used a *dual-boot* PC that runs both Windows and Linux. You would have switched between them when required.
 
-Another solution is the [VirtualBox](https://www.virtualbox.org/) that allows you to run entirely full scale guest OS on top of your host OS.
+Another solution is the [VirtualBox](https://www.virtualbox.org/) that allows you to run entirely full-scale guest OS on top of your host OS.
 
-These are not bad solutions. It is just that Docker is a leaner solution compared to these full scale OS images if you just want to have a uniform runtime environment. Moreover, there is no automated way to configure each OS the same way, unless you do it manually, which may lead to different configurations at scale.
+These are not bad solutions. It is just that Docker is a leaner solution compared to these full-scale OS images if you just want to have a uniform runtime environment. Moreover, there is no automated way to configure each OS the same way, unless you do it manually, which may lead to different configurations at scale.
 
-Compare that against a set of written instructions that can be version controlled. **Docker uses the instructions to pull in the necessary OS libraries to construct the runtime on top of your existing operating system.** Not too different from using a `package.json` or `Gemfile` to keep track of project dependencies.
+Compare that to a set of written instructions that can be version controlled. **Docker uses the instructions to pull in the necessary OS libraries to construct the runtime on top of your existing operating system.** Not too different from using a `package.json` or `Gemfile` to keep track of project dependencies.
 
 The image with Ruby and Node that we'll be using is close to 300MB. Imagine having to set up a virtual OS, usually takes up more space.
 
@@ -82,7 +82,7 @@ Enough selling Docker. Time to get an image up and running.
 
 The right runtime environment for you may have been solved already. You just need to find it. If you need only ruby, the [official ruby image](https://store.docker.com/images/ruby) will do. If you need both Ruby and NodeJS, I found this [image by starefossen](https://hub.docker.com/r/starefossen/ruby-node/) useful.
 
-This image uses official ruby image and builds NodeJS on top of it using commands from the official NodeJS image. So you get best of both worlds.
+This image uses the official ruby image and builds NodeJS on top of it using commands from the official NodeJS image. So you get best of both worlds.
 
 **Just a word of caution**, Docker is not a silver bullet. Our objective is to start a runtime as quickly as possible and move on to building our app. But if the repository is not maintained or updated to reflect latest ways to install NodeJS, then it might be broken. Look through the builds to ensure you have a working image.
 
@@ -105,7 +105,7 @@ FROM starefossen/ruby-node:2-8-stretch
 
 That command says "pull the `ruby-node` image tagged `2-8-stretch`".
 
-**Tip**: Look into the [docker hub](https://hub.docker.com/r/starefossen/ruby-node/) and pick the right version from the list of tags that suits your needs.
+**Tip**: Look into the [docker hub](https://hub.docker.com/r/starefossen/ruby-node/) and pick the right version from the list of tags that suit your needs.
 
 ...and back at the terminal. Time to build and run the container.
 
@@ -117,7 +117,7 @@ docker run -it auth0app /bin/bash
 
 The first command builds an image based on the instructions you've given in the `Dockerfile`. For now, `Dockerfile` just says, pull up the image from the repository. It would take minutes (or hours) depending on your connection. Total download size was close to 300MB for the first time.
 
-Second command boots the image into a container, which is like giving life to the image. Can't help it, but it is identical to creating an object out of a class! `-it` flag gives you an interactive terminal access *inside* the container. 
+The second command boots the image into a container, which is like giving life to the image. Can't help it, but it is identical to creating an object out of a class! `-it` flag gives you an interactive terminal access *inside* the container. 
 
 That should take you to the shell prompt that shows something in the lines of `root@abc123a1234b:/# `. That means you are inside the container, **with root access**. It is quite easy to expose your host root directory as a volume and it becomes editable within the container. *Just be careful what you command the prompt to do!*
 
@@ -145,7 +145,7 @@ RUN bundle install
 COPY . /project
 ```
 
-**Tip**: Each command in the `Dockerfile` creates a layer. While layers created by commands such as `WORKDIR` as discarded towards final build, layers by `ADD`, `RUN` and `COPY` are retained and may increase the size of final image. It is usually a [best practice](https://docs.docker.com/develop/develop-images/dockerfile_best-practices/) to put most of those commands together in one line to avoid layers within the image. For example, `RUN apt-get update -qq & apt-get install -y nano build-essential libpq-dev` and so on. 
+**Tip**: Each command in the `Dockerfile` creates a layer. While layers created by commands such as `WORKDIR` as discarded towards final build, layers by `ADD`, `RUN` and `COPY` are retained and may increase the size of the final image. It is usually a [best practice](https://docs.docker.com/develop/develop-images/dockerfile_best-practices/) to put most of those commands together in one line to avoid layers within the image. For example, `RUN apt-get update -qq & apt-get install -y nano build-essential libpq-dev` and so on. 
 
 Here is what's going on:
 
@@ -155,17 +155,17 @@ Here is what's going on:
 * Install Bundler which will update existing Bundler.
 * Create a folder for your project
 * Copy `Gemfile` and `Gemfile.lock` from host to app folder
-* Set working directory to app folder
+* Set the working directory to the app folder
 * Run `bundle install` inside the project folder. This will install necessary gems inside the container.
 * Copy rest of the content from your host folder to container app folder.
 
-Note that installing OS specific tools and copying only `Gemfile` and `Gemfile.lock` to app folder before running `bundle install` has **tremendous advantage**. Changes to the other files within the application folder do not trigger `bundle install`. Only if the `Gemfile` or `Gemfile.lock` changes, `bundle install` will be triggered. 
+Note that installing OS-specific tools and copying only `Gemfile` and `Gemfile.lock` to app folder before running `bundle install` has **tremendous advantage**. Changes to the other files within the application folder do not trigger `bundle install`. Only if the `Gemfile` or `Gemfile.lock` changes, `bundle install` will be triggered. 
 
 If you think deeply enough, you'll understand that it will save hours. If thinking deeply hurts, just try moving the command `COPY . /project` line just above `bundle install`. Every time you make even a small change within app folder, the container has to be built with all the gems being installed from scratch. This hurts more!
 
 ### Stitch Services with `docker-compose.yml`
 
-The `docker-compose.yml` file contains instructions that stitches multiple pieces together such as database container, application container, host folder where you store your application repository, environmental aspects such as volumes and ports.
+The `docker-compose.yml` file contains instructions that stitch multiple pieces together such as database container, application container, host folder where you store your application repository, environmental aspects such as volumes and ports.
 
 This is going to be a **database driven application**. So, we need a way to persist data created in the environment. One way is to introduce a separate service for database layer that has its own volume (fancy name for storage space).
 
@@ -198,12 +198,12 @@ All right, another set of descriptions for instructions within the `docker-compo
 1. The version tells Docker about the possible tokens used inside this YAML file. Be cautious using flags from other versions, they may not work in version 3.
 2. A standalone database container launched from official Postgres image.
 3. Another service named `app` which is built based on the `Dockerfile` in the same folder.
-4. The final command that need to be run when launching the container.
-5. A volume that maps local folder to corresponding folder inside the container.
-6. Instruction to open port 3000 and map it to port 3000 on host.
+4. The final command that needs to be run when launching the container.
+5. A volume that maps local folder to the corresponding folder inside the container.
+6. Instruction to open port 3000 and map it to port 3000 on the host.
 7. An instruction to launch `db` service first as a dependency before launching `app` service.
 
-### All New Rails Project
+### All-New Rails Project
 
 Start by building the containers. For that you need to add two empty files to the **project root folder**:
 
@@ -217,15 +217,15 @@ source 'https://rubygems.org'
 gem 'rails', '~>5.1.5'
 ```
 
-`Gemfile.lock` is auto populated during the build process and it locks gem dependencies to particular versions. You don't ever have to touch that `Gemfile.lock` again. **Once those files are in place**, run this on your terminal:
+`Gemfile.lock` is auto-populated during the build process and it locks gem dependencies to particular versions. You don't ever have to touch that `Gemfile.lock` again. **Once those files are in place**, run this on your terminal:
 
 ```
 docker-compose up --build
 ```
 
-You will see that `step 1/nn: FROM starefossen/ruby-node:2-8-stretch` is available **instantly** as a layer (that is if you have already tried the initial `docker run` with single line of `Dockerfile`).
+You will see that `step 1/nn: FROM starefossen/ruby-node:2-8-stretch` is available **instantly** as a layer (that is if you have already tried the initial `docker run` with a single line of `Dockerfile`).
 
-That's Docker reusing the ruby image downloaded earlier. The whole process that ran last time is saved for you. So it is only from second line of code within the `Dockerfile` that matters now.
+That's Docker reusing the ruby image downloaded earlier. The whole process that ran last time is saved for you. So it is only from the second line of code within the `Dockerfile` that matters now.
 
 You'll see all the steps within the `Dockerfile` executed dutifully during the build process. Each of them creates a **layer** that you can recognize by their hash, that looks like `1adb3ee3e245`. 
 
@@ -239,9 +239,9 @@ docker-compose run app rails new . --force --database=postgresql --skip-bundle
 
 That should scaffold a new rails application in all its initial glory. As you can see, `postgresql` is the database of choice. Also, instructs the command to skip running `bundle install` after creating the project. 
 
-Since the command creates all new `Gemfile` with necessary gem dependencies detailed, you need to build the image again. So, there is no point in running automatic `bundle install` on the container, as the gems downloaded will not be persisted.
+Since the command creates all-new `Gemfile` with necessary gem dependencies detailed, you need to build the image again. So, there is no point in running automatic `bundle install` on the container, as the gems downloaded will not be persisted.
 
-Since the new rails project has updated `Gemfile`, you need to stop the running services and build the image agian. The following commands should get you back up online: 
+Since the new rails project has updated `Gemfile`, you need to stop the running services and build the image again. The following commands should get you back up online: 
 
 ```bash
 docker-compose down
@@ -281,7 +281,7 @@ git add --all
 git commit -am "first working copy"
 ```
 
-That adds all the files to staging area and commits the changes with a readable comment.
+That adds all the files to the staging area and commits the changes with a readable comment.
 
 If you look closely, you did not initiate a repository with `git init` as you'd normally do. Rails automatically initiated the repository. It has also generated a `.gitignore` file for you with pre-populated instructions as to which folders to ignore. This file ensures unnecessary folders and files, such as log files, are kept out of the repository.
 
@@ -294,9 +294,9 @@ git remote add origin git@github.com:user_name/repo_name.git
 git push -u origin master
 ```
 
-Just ensure you use your own GitHub user name and repository name in the command above. It is easier to copy the URL shown on GitHub.
+Just ensure you use your own GitHub username and repository name in the command above. It is easier to copy the URL shown on GitHub.
 
-Once `push` is complete, refresh GitHub repository page to see the files committed. Now that they are on the cloud, we can say it is much more safe to play around with the local copy.
+Once `push` is complete, refresh GitHub repository page to see the files committed. Now that they are in the cloud, we can say it is much more safe to play around with the local copy.
 
 **From here onwards, we'll work on a branch named `staging` and move changes to `master` branch only when necessary.**
 
@@ -312,7 +312,7 @@ That creates a new branch and checks it out. Pushes the branch to `origin`, whic
 
 ### Precious Gems
 
-[Guard](https://github.com/guard/guard) gem helps watching for file changes and run appropriate commands based on which file has changed. There are plugins that allow you to take different actions for different files. [guard-minitest](https://github.com/guard/guard-minitest) allows you to run tests when test files or app files change. [guard-livereload](https://github.com/guard/guard-livereload) refreshes the page automatically when `css`, `js` or `erb` files change.
+[Guard](https://github.com/guard/guard) gem helps to watch for file changes and run appropriate commands based on which file has changed. There are plugins that allow you to take different actions for different files. [guard-minitest](https://github.com/guard/guard-minitest) allows you to run tests when test files or app files change. [guard-livereload](https://github.com/guard/guard-livereload) refreshes the page automatically when `css`, `js` or `erb` files change.
 
 Ensure the `Gemfile` reflects guard gems necessary for watching file changes. This will help hot reloading and automated testing.
 
@@ -348,7 +348,7 @@ Now that the `Guardfile` is ready, you can boot it up with this command.
 docker-compose run -p 35729:35729 app bundle exec guard
 ```
 
-That should show `guard is now watching at /app`. It should also show that it is **waiting for browser to connect**. You'll get there in a minute. But it is **not necessary to open up a new terminal** and run that command every time. If you want, you can set it up as a docker service in itself. 
+That should show `guard is now watching at /app`. It should also show that it is **waiting for the browser to connect**. You'll get there in a minute. But it is **not necessary to open up a new terminal** and run that command every time. If you want, you can set it up as a docker service in itself. 
 
 Exit out of that `guard>` prompt for now.
 
@@ -387,7 +387,7 @@ Once you install the extension, you should be able to get the extension as an ic
 ![guard-disconnected](https://auth0.com/blog/rails/image_f31.png)
 ![guard-connected](https://auth0.com/blog/rails/image_f32.png)
 
-Time to test it out. Also, time to get your own page on screen.
+Time to test it out. Also, time to get your own page on the screen.
 
 ### First Rails Controller
 
@@ -398,7 +398,7 @@ docker-compose run --user $(id -u):$(id -g) app rails g controller Home show
 ```
 You can run as many such commands on your host terminal while leaving `docker-compose up` to serve rails app on a separate terminal. You only have to **restart** if you make major changes to the app such as adding database migrations or new gems.
 
-Have a good look at that default Ruby on Rails page. Because, **Yay! You are on Rails** is going bye bye and you'll replace it with most useful and comfy home page the internet has ever seen.
+Have a good look at that default Ruby on Rails page. Because**Yay! You are on Rails** is going bye bye and you'll replace it with most useful and comfy home page the internet has ever seen.
 
 You can see Rails has added `get 'home/show'` by default within `config/routes.rb` file. Replace it with this now.
 
@@ -416,7 +416,7 @@ Final test if Guard is really worth all the effort. Open `app/views/home/show.ht
 
 ![GIF of LiveReload]
 
-**Tip:** Sometimes the container serving Rails app through `rails s` may not close and clean up properly if the container was not shutdown properly. In such cases, you might see an error that looks like this:
+**Tip:** Sometimes the container serving Rails app through `rails s` may not close and clean up properly if the container was not shut down properly. In such cases, you might see an error that looks like this:
 
 ```bash
 app_1    | A server is already running. Check /project/tmp/pids/server.pid.
@@ -426,7 +426,7 @@ app_1    | Exiting
 auth0railsapp_app_1 exited with code 1
 ```
 
-There in lies the clue. Rails server stores process id within the `tmp/pids/server.pid` file. You may need to manually delete that file and restart the services using :
+Therein lies the clue. Rails server stores process id within the `tmp/pids/server.pid` file. You may need to manually delete that file and restart the services using :
 
 ```bash
 docker-compose down
@@ -437,7 +437,7 @@ docker-compose up
 
 Guard gem can also help you run tests when you change your application files. In fact, it is smart enough to run only those tests that need to be executed based on the files you change. 
 
-You have already included necessary `guard-minitest` gem to automate running tests upon file changes, in **Precious Gems** section. You just need to get the test environment ready.
+You have already included necessary `guard-minitest` gem to automate running tests on file changes, in **Precious Gems** section. You just need to get the test environment ready.
 
 ### Setup MiniTest Environment
 
@@ -464,7 +464,7 @@ docker-compose run app rails db:create RAILS_ENV=test
 
 ### Initiate Guard Minitest 
 
-Just like what you've done to get livereload working, guard needs to be initiated watch for file changes to run tests when necessary.
+Just like what you've done to get livereload working, Guard needs to be initiated to watch for file changes to run tests when necessary.
 
 ```bash
 docker-compose run app guard init minitest
@@ -476,11 +476,11 @@ That should add additional instructions to `Guardfile`. Open the `Guardfile` in 
 2. **Un-comment** instructions generated for `Rails 4`.
 3. **Change** the block to read like `guard "minitest", spring: "bin/rails test" do`. 
 
-Using spring is optional, spring is a preloader that starts tests faster. So the tests should run without point 3 as well. Despite being in Rails 5, those commands should work just ok. 
+Using spring is optional, spring is a preloader that starts tests faster. So the tests should run without point 3 as well. Despite being on Rails 5, those commands should work just ok. 
 
 You should be able to see **guard running all tests** when it starts. If it doesn't, stop the services using `docker-compose down` and reboot them via `docker-compose up`.
 
-You should be able to see a failed test, if you followed on to the instructions above.
+You should be able to see a failed test if you followed on to the instructions above.
 
 ```bash
 guard_1  | 1 runs, 0 assertions, 0 failures, 1 errors, 0 skips
@@ -489,7 +489,7 @@ guard_1  | 1 runs, 0 assertions, 0 failures, 1 errors, 0 skips
 
 Remember changing the `config/routes.rb` file to point root at `home#show` action? That's what causing the issue now. Update the file `test/controllers/home_controller_test.rb` to reflect the changes made to the `config/routes.rb` file earlier. 
 
-The test would have auto-generated line `get home_show_url`, just change it to `get root_url`. 
+The test would have the auto-generated line `get home_show_url`, just change it to `get root_url`. 
 
 ```rb
   #...
