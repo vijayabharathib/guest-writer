@@ -80,7 +80,7 @@ Enough selling Docker. Time to get an image up and running.
 
 ### Finding The Right Docker Image
 
-The right runtime environment for you may have been solved already. You just need to find it. If you need only ruby, the [official ruby image](https://store.docker.com/images/ruby) will do. If you need both Ruby and NodeJS, I found this [image by starefossen](https://hub.docker.com/r/starefossen/ruby-node/) useful.
+The right runtime environment for you may have been solved already. You just need to find it. If you only need ruby, the [official ruby image](https://store.docker.com/images/ruby) will do. If you need both Ruby and NodeJS, I found this [image by starefossen](https://hub.docker.com/r/starefossen/ruby-node/) useful.
 
 This image uses the official ruby image and builds NodeJS on top of it using commands from the official NodeJS image. So you get best of both worlds.
 
@@ -312,16 +312,18 @@ That creates a new branch and checks it out. Pushes the branch to `origin`, whic
 
 ### Precious Gems
 
-[Guard](https://github.com/guard/guard) gem helps to watch for file changes and run appropriate commands based on which file has changed. There are plugins that allow you to take different actions for different files. [guard-minitest](https://github.com/guard/guard-minitest) allows you to run tests when test files or app files change. [guard-livereload](https://github.com/guard/guard-livereload) refreshes the page automatically when `css`, `js` or `erb` files change.
+[Guard](https://github.com/guard/guard) gem helps to watch for file changes and run appropriate commands based on which file has changed. There are plugins that allow you to take different actions for different files. [guard-minitest](https://github.com/guard/guard-minitest) allows you to run tests when test files or app files change. [guard-livereload](https://github.com/guard/guard-livereload) refreshes the page automatically when `css`, `js` or `erb` files change. Foreman gem will be used to run multiple commands. [Rack-livereload](https://github.com/johnbintz/rack-livereload) is an option to enable livereload from middleware.
 
 Ensure the `Gemfile` reflects guard gems necessary for watching file changes. This will help hot reloading and automated testing.
 
 ```Gemfile
 group :development, :test do
   # ...
-  gem 'guard', '~>2.14.2'
-  gem 'guard-livereload','~>2.5.2'
-  gem 'guard-minitest', '~>2.4.6'
+  gem 'guard', '~>2.14.2',require:false
+  gem 'guard-livereload','~>2.5.2', require: false
+  gem 'guard-minitest', '~>2.4.6', require: false
+  gem 'rack-livereload'
+  gem 'foreman'
 ```
 
 Ensure you **do not remove** any existing gems in the process. Remeber the usual drill to build the image to include these new gems. 
@@ -332,51 +334,87 @@ docker-compose up --build
 
 ### Initiate a Guardfile 
 
-You need to set up `guard` to watch for file changes. Run the following command to get started.
+You need to set up `guard` to watch for file changes. Run the following command to get started. Docker build step in the previous section would have got a container running. You need to get into that container and access a command prompt (just like your terminal). 
+
+If you need to run any command inside a container that is already running, you can use `docker-compose exec`. Here is how:
 
 ```bash
-docker-compose run --user $(id -u):$(id -g) app guard init livereload
+docker-compose exec --user $(id -u):$(id -g) app /bin/bash
+```
+That'd open a prompt within the container for you. Within the prompt, you can proceed to run further commands. The flag `--user $(id -u):$(id -g)` tells Docker to run the prompt as a normal user instead of root.
+
+Start with initiating livereload plugin for Guard.
+
+```bash
+guard init livereload
 ```
 
 That should create a `Guardfile` with instructions to watch for a list of extensions. Have a read through and you'll understand that the instructions target files that affect the rendered page such as `css`, `js` or `erb`. 
 
-**Note**: Remember the drill to `chown` the files. Ensure you have edit access to the files. An alternative is to run docker commands as current user instead of allowing it to use root by default. That is achieved by `--user $(id -u):$(id -g)` portion of the command.
+**Note**: If plain docker commands are run with root privileges, you can use `--user $(id -u):$(id -g)` flag to run commands as a normal user. If you already have files created with root access, you'll have to `chown` the files. 
 
-Now that the `Guardfile` is ready, you can boot it up with this command.
+Now that the `Guardfile` is ready, you can boot it up with this command. You'll have to run this inside the container prompt opened earlier.
 
 ```bash
-docker-compose run -p 35729:35729 app bundle exec guard
+bundle exec guard -i
 ```
 
-That should show `guard is now watching at /app`. It should also show that it is **waiting for the browser to connect**. You'll get there in a minute. But it is **not necessary to open up a new terminal** and run that command every time. If you want, you can set it up as a docker service in itself. 
+That should show `guard is now watching at /app`. It should also show that it is **waiting for the browser to connect**. You'll get there in a minute. 
 
-Exit out of that `guard>` prompt for now.
+Exit out of that prompt for now. You can use `Ctrl+C` to come out.
 
-### Guard Docker Service 
+### Multiple Commands Using Foreman
 
-Setup a guard service in your `docker-compose.yml` file.  You can take a copy of the `app` service we had earlier and amend it to look like this (within the same `docker-compose.yml` file of course).
+Now that you have Guard, you are presented with a problem. The container needs to run `rails server` and also `guard` watcher.
+
+But docker allows only one command per service. Here comes `foreman` gem you've installed earlier, along with `guard`.
+
+Foreman takes a `Procfile` with multiple commands and runs them all. With that capability, you can ask docker to run just Foreman and it will take care of rest of the commands.
+
+First stop is to set up a `Procfile.dev`. It looks like this:
+
+```Procfile
+web: bundle exec rails s -b '0.0.0.0'
+guard: bundle exec guard -i
+```
+
+Next stop is to change the docker service to start Foreman instead of the Rails server. The `docker-compose.yml` should look like this:
 
 ```yml
+version: '3'
+volumes: 
+  postgres-data:
+services:
   db:
-  ...
-  ...
+    image: postgres
+    volumes: 
+      - postgres-data:/var/lib/postgresql/data
   app:
-  ...
-  ...
-  guard:
     build:
       context: .
       dockerfile: Dockerfile
-    command: bundle exec guard -i
+    command: foreman start -f Procfile.dev -p 3000
     volumes:
       - .:/project
     ports:
+      - "3000:3000"
       - "35729:35729"
-```
+    depends_on:
+      - db
 
-Livereload server uses port `35729`. You just exposed it outside of the container. This will ensure the livereload browser plugin can talk to the server. 
+```
+You'll notice two changes. One, the command has changed for `app` service. Now it is initiating Foreman.
+
+You may also notice an additional port. Livereload server uses port `35729`. You just exposed it outside of the container. This will ensure the browser can talk to the livereload server. 
 
 Bring the service down using `docker-compose down` and reboot it through `docker-compose up`. This should open up livereload in a separate service.
+
+One last piece of work. To empower browser to receive and apply changes when files are altered. You can do it in two ways:
+
+1. Install LiveReload Browser Plugin
+2. Insert Rack Middleware (Recommended)
+
+The browser plugin option is browser dependent. But works without `rack-livereload` related middleware changes to development region. But middleware change will help you get live-reloading in any browser. Choose whichever option works for you.
 
 ### Livereload Browser Plugin
 
@@ -389,13 +427,34 @@ Once you install the extension, you should be able to get the extension as an ic
 
 Time to test it out. Also, time to get your own page on the screen.
 
+### Enable Middleware LiveReload
+If you are one of those front-end developers who install just about every possible browser, then the browser plugin option may not help. Your favorite browser may not even have a plugin.
+
+In such cases, it is possible to ask the Rack middleware to inject the livereload script into the HTML being served from rails server.
+
+You have already installed the necessary gem named `rack-livereload` in the previous section. You just have to add this configuration.
+
+```rb
+# in config/environment/development.rb file
+
+config.middleware.insert_after(ActionDispatch::Static, Rack::LiveReload)
+```
+
+Since this is a change at middleware level, you need to stop the docker services and start them again.
+
+```bash
+docker-compose down
+docker-compose up
+```
+
 ### First Rails Controller
 
 Back on the terminal, run the following command to create a Controller along with an action named 'show'.
 
 ```bash
-docker-compose run --user $(id -u):$(id -g) app rails g controller Home show
+docker-compose exec --user $(id -u):$(id -g) app rails g controller Home show
 ```
+
 You can run as many such commands on your host terminal while leaving `docker-compose up` to serve rails app on a separate terminal. You only have to **restart** if you make major changes to the app such as adding database migrations or new gems.
 
 Have a good look at that default Ruby on Rails page. Because**Yay! You are on Rails** is going bye bye and you'll replace it with most useful and comfy home page the internet has ever seen.
@@ -412,7 +471,7 @@ Ensure that your container is up and running with all services. Especially the G
 
 Final test if Guard is really worth all the effort. Open `app/views/home/show.html.erb`, edit it to add your heart's content and save it.
 
-**Voilà!** By the time you go back to the browser, it should already have the new content.
+**Voilà!** By the time you go back to the browser, it should already have the new content. Now's the time you lose yourself in changing styles and watching them appear on the screen as you hit `save`!
 
 ![GIF of LiveReload]
 
@@ -426,12 +485,7 @@ app_1    | Exiting
 auth0railsapp_app_1 exited with code 1
 ```
 
-Therein lies the clue. Rails server stores process id within the `tmp/pids/server.pid` file. You may need to manually delete that file and restart the services using :
-
-```bash
-docker-compose down
-docker-compose up
-```
+Therein lies the clue. Rails server stores process id within the `tmp/pids/server.pid` file. You may need to **manually delete** that file and restart the services if you run into that error. 
 
 ## Guard To Automate Tests
 
@@ -459,7 +513,7 @@ This is to ensure the `db` service created within the docker container is used a
 And it is better to create a database instance upfront to avoid unnecessary error messages from Guard Minitest when it tries to run tests.
 
 ```bash
-docker-compose run app rails db:create RAILS_ENV=test
+docker-compose exec app rails db:create RAILS_ENV=test
 ```
 
 ### Initiate Guard Minitest 
@@ -467,7 +521,7 @@ docker-compose run app rails db:create RAILS_ENV=test
 Just like what you've done to get livereload working, Guard needs to be initiated to watch for file changes to run tests when necessary.
 
 ```bash
-docker-compose run app guard init minitest
+docker-compose exec app guard init minitest
 ```
 
 That should add additional instructions to `Guardfile`. Open the `Guardfile` in your editor and do these changes under `guard :minitest do` group:
@@ -541,11 +595,13 @@ But one last handy tip that will save a lot of keystrokes for you. Add an alias 
 dc run --rm app /bin/bash
 ```
 
+Another important difference to keep in mind, `docker-compose run` springs up a whole new container based on the `docker-compose.yml` and runs the command. But `docker-compose exec` runs the command inside the currently running container. Unless necessary, stick to `docker-compose exec` and run commands on already running containers.
+
 ## Conclusion
 
 That brings us to the end of Part 1, where you have a **dockerized workflow that gives you both live-reloading and automated testing**. 
 
-In part 2, you'll build core application functionality on top of this workflow with identity management. You'll also extend your workflow to enable **Continuous Deployment** involving [GitHub], [Travis] and [Heroku]. You'll end it with an application running in production.
+In part 2, you'll build core application functionality on top of this workflow with identity management. You'll also extend your workflow to enable **Continuous Testing** using [GitHub] and [Travis]. You'll also set up **Continuous Deployment** route to [Heroku]. You'll end it with an application running in production.
 
 
 [GitHub]: https://github.com/
