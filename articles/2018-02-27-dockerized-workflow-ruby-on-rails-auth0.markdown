@@ -25,7 +25,7 @@ The objective is to optimize for developer happiness. Ruby on Rails fits the bil
 
 **1. Docker**
 
-You need to get [docker installed](https://docs.docker.com/install/). Use `docker -v` to verify you have a working version of docker. The one I have is `Docker version 17.12.0-ce, build c97c6d6`. You'll know more about docker in a minute. Installing and getting to know docker is a great investment of your time. You'll receive returns in multiples as you start to use Docker for all your projects.
+You need to get [docker installed](https://docs.docker.com/install/). Use `docker -v` on a terminal to verify you have a working version of docker. The one I have is `Docker version 17.12.0-ce, build c97c6d6`. You'll know more about docker in a minute. Installing and getting to know docker is a great investment of your time. You'll receive returns in multiples as you start to use Docker for all your projects.
 
 **2. Docker Compose**
 
@@ -74,7 +74,7 @@ These are not bad solutions. It is just that Docker is a leaner solution compare
 
 Compare that to a set of written instructions that can be version controlled. **Docker uses the instructions to pull in the necessary OS libraries to construct the runtime on top of your existing operating system.** Not too different from using a `package.json` or `Gemfile` to keep track of project dependencies.
 
-The image with Ruby and Node that we'll be using is close to 300MB. Imagine having to set up a virtual OS, usually takes up more space.
+The image with Ruby and Node that we'll be using is close to 300MB. You can explore for smaller images when you are done with this process. Imagine having to set up a virtual OS, which usually takes up more space.
 
 Enough selling Docker. Time to get an image up and running.
 
@@ -90,14 +90,14 @@ This image uses the official ruby image and builds NodeJS on top of it using com
 Hurray! Time to step into a terminal.
 
 ```bash
-mkdir auth0_rails_app
-cd auth0_rails_app
+mkdir dockerized-rails-app
+cd dockerized-rails-app
 touch Dockerfile
 ```
 
-In English, create a folder named `auth0_rails_app`, `cd` into the directory and create a file named `Dockerfile`. I can hear you say, "that doesn't need a terminal!". But, it's good to get comfortable living in the terminal.
+In English, create a folder named `dockerized-rails-app`, `cd` into the directory and create a file named `Dockerfile`. I can hear you say, "that doesn't need a terminal!". But, it's good to get comfortable living in the terminal.
 
-Now, open your favorite text editor. Fill in this content within the `Dockerfile`.
+Now, open your favorite text editor. [VSCode](https://code.visualstudio.com/) is the one I use. If you have VSCode, you can type `code .` on the terminal to open the folder in the editor. Fill in this content within the `Dockerfile`.
 
 ```Dockerfile
 FROM starefossen/ruby-node:2-8-stretch
@@ -119,11 +119,11 @@ The first command builds an image based on the instructions you've given in the 
 
 The second command boots the image into a container, which is like giving life to the image. Can't help it, but it is identical to creating an object out of a class! `-it` flag gives you an interactive terminal access *inside* the container. 
 
-That should take you to the shell prompt that shows something in the lines of `root@abc123a1234b:/# `. That means you are inside the container, **with root access**. It is quite easy to expose your host root directory as a volume and it becomes editable within the container. *Just be careful what you command the prompt to do!*
+That should take you to the shell prompt that shows something in the lines of `root@abc123a1234b:/# `. That means you are inside the container, **with root access**. It is quite easy to expose your host root directory as a volume and it becomes editable within the container. *Just be careful what you command the prompt to do!* Even better, use `--user $(id -u):$(id -g)` flag while using `docker run` to force using current user instead of root.
 
 Now run `ruby -v` inside the shell to get the ruby version. Did you get `ruby 2.5.0...`? What about `node -v`? Did you get `v8.10`? 
 
-Great! That's your own runtime environment with Ruby and Node pre-installed. Well done so far. 
+Great! That's your own runtime environment with Ruby and Node pre-installed. Well done so far. Run `exit` to close the shell and come out of the container.
 
 ## Ruby on Rails Inside the Container
 
@@ -131,7 +131,7 @@ You'll shape different aspects of Rails project in this section. **This whole se
 
 ### Setting Up `Dockerfile`
 
-Here are the additions to `Dockerfile`
+Here is the new version of the `Dockerfile`
 
 ```Dockerfile
 FROM starefossen/ruby-node:2-8-stretch
@@ -159,7 +159,7 @@ Here is what's going on:
 * Run `bundle install` inside the project folder. This will install necessary gems inside the container.
 * Copy rest of the content from your host folder to container app folder.
 
-Note that installing OS-specific tools and copying only `Gemfile` and `Gemfile.lock` to app folder before running `bundle install` has **tremendous advantage**. Changes to the other files within the application folder do not trigger `bundle install`. Only if the `Gemfile` or `Gemfile.lock` changes, `bundle install` will be triggered. 
+Note that installing OS-specific tools and copying only `Gemfile` and `Gemfile.lock` to app folder before running `bundle install` has **tremendous advantage**. Changes to the other files within the application folder do not trigger `bundle install`. Only if the `Gemfile` or `Gemfile.lock` changes, `bundle install` will be triggered. Hang on for a while, we'll create the `Gemfile` and its lock file shortly.
 
 If you think deeply enough, you'll understand that it will save hours. If thinking deeply hurts, just try moving the command `COPY . /project` line just above `bundle install`. Every time you make even a small change within app folder, the container has to be built with all the gems being installed from scratch. This hurts more!
 
@@ -214,10 +214,10 @@ Add just two lines to the `Gemfile`. It should look like:
 
 ```Gemfile
 source 'https://rubygems.org'
-gem 'rails', '~>5.1.5'
+gem 'rails', '~>5.2'
 ```
 
-`Gemfile.lock` is auto-populated during the build process and it locks gem dependencies to particular versions. You don't ever have to touch that `Gemfile.lock` again. **Once those files are in place**, run this on your terminal:
+You'll be using the all new Rails 5.2. `Gemfile.lock` is auto-populated during the build process and it locks gem dependencies to particular versions. You don't ever have to touch that `Gemfile.lock` again. **Once those files are in place**, run this on your terminal:
 
 ```
 docker-compose up --build
@@ -231,15 +231,34 @@ You'll see all the steps within the `Dockerfile` executed dutifully during the b
 
 Once build steps are over, you'll see `db` service being started first. And then the `app` service starts, but **stops** when trying to run `bundle exec rails s`, as we do not have `rails` gem within the environment yet. 
 
-But the log on the terminal shows `man` page for Rails and shows you how to get started. Run this command to create a new Rails project. 
+But the log on the terminal shows `man` page for Rails and shows you how to get started. Press `ctrl+c` to bring down the container if it is still running. You should be back at the terminal prompt. Run this command to create a new Rails project.
 
 ```bash
-docker-compose run app rails new . --force --database=postgresql --skip-bundle
+docker-compose run --user $(id -u):$(id -g) app rails new . --force --database=postgresql --skip-bundle
 ```
 
 That should scaffold a new rails application in all its initial glory. As you can see, `postgresql` is the database of choice. Also, instructs the command to skip running `bundle install` after creating the project. 
 
-Since the command creates all-new `Gemfile` with necessary gem dependencies detailed, you need to build the image again. So, there is no point in running automatic `bundle install` on the container, as the gems downloaded will not be persisted.
+Since the command creates all-new `Gemfile` with necessary gem dependencies detailed, you need to build the image again. So, there is no point in running automatic `bundle install` on the temporary container while scaffolding the application, as the gems downloaded will not be persisted. 
+
+Usually, this is where you'll add or delete gems based on your project. If you wouldn't be using `coffee-script`, you can comment that line by prefixing a `#` in front of it. But leave them as they are now, for following this article.
+
+You need to point the Rails app to the database container created by docker. This configuration will do that for you.
+
+```yml
+# config/database.yml
+
+# ...
+default: &default
+  adapter: postgresql
+  encoding: unicode
+  host: db
+  user: postgres
+  port: 5432
+  password:
+  pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
+# ... leave all else intact
+```
 
 Since the new rails project has updated `Gemfile`, you need to stop the running services and build the image again. The following commands should get you back up online: 
 
@@ -248,15 +267,29 @@ docker-compose down
 docker-compose up --build
 ```
 
+**Note:** `docker-compose down` is usually executed from a new terminal but within the same project folder. This is because `docker-compose up` boots up the containers and shows the logs. It wouldn't quit until you press `Ctrl+C` or you run `docker-compose down` on a new terminal. In the course of this article, remember to use the terminal running `docker-compose up` for monitoring logs. All other commands can go into a new terminal. If you have a tabbed terminal, that would be very useful.
+
 You'd have noticed that Docker reuses most of the layers created. It does not install updates or nano editor or build tools. Because there is no change in those layers. Very smart!
 
 Docker build picks up from where changes happened. The only change is on `Gemfile`, hence, the line `COPY` within the `Dockerfile` kicks in and build starts from there on top of existing layers.
 
 **Explore:** Docker starts to download and install all gems once again. There are ways to cache gems locally so that they do not need to be downloaded again. Some of the online solutions are a bit old and broken. You'll have to let me know when you find a solution. 
 
-But the good news is, **Yay! You are on rails!**. Open your favorite browser and point it at [http://localhost:3000](http://localhost:3000) and you should see the whole world rejoicing at the sight of `Rails 5.1.5` and `Ruby 2.5`.
+But the good news is, **Yay! You are on rails!**. Open your favorite browser and point it at [http://localhost:3000](http://localhost:3000) and you should see the whole world rejoicing at the sight of `Rails 5.2.0` and `Ruby 2.5`.
 
-**Remember to re-build the image again if you make changes to the `Gemfile`**.
+No? did you get `ActiveRecord: NoDatabaseError`? Well, that might happen. Create a database via this command on a new terminal (you should be within the root of the project directory and the container should already be running):
+
+```
+docker-compose exec app rails db:create  
+```
+
+That should create a new database for development and also for test environments. Now open http://localhost:3000 again. You are ready to start celebrations!
+
+![Docker and Ruby on Rails](https://cdn.auth0.com/blog/docker-ruby/you-are-own-rails.png)
+
+**Remember to re-build the image again if you make changes to the `Gemfile`**. But if you have not changed the `Gemfile`, you don't have to build it, instead, just boot it up.
+
+![Docker starting Rails server](https://cdn.auth0.com/blog/docker-ruby/starting_docker_container_local_server.gif)
 
 ### Own The Files
 
@@ -285,7 +318,7 @@ That adds all the files to the staging area and commits the changes with a reada
 
 If you look closely, you did not initiate a repository with `git init` as you'd normally do. Rails automatically initiated the repository. It has also generated a `.gitignore` file for you with pre-populated instructions as to which folders to ignore. This file ensures unnecessary folders and files, such as log files, are kept out of the repository.
 
-Now create a new repository within [GitHub]. Just **create an empty** one, no need to create any `README.md` or `.gitignore` files on the GitHub server. They are already there on your local machine.
+Now create a new repository within [GitHub]. You might run into one of the [two hard things in Computer Science](https://martinfowler.com/bliki/TwoHardThings.html), so just give this name, `dockerized-rails-app`, it'll save you some time. **Create an empty** one, no need to create any `README.md` or `.gitignore` files on the GitHub server. They are already there on your local machine.
 
 GitHub shows instructions to add an existing repository when you create a new one. Run these on your terminal to push your changes to GitHub. 
 
@@ -312,21 +345,23 @@ That creates a new branch and checks it out. Pushes the branch to `origin`, whic
 
 ### Precious Gems
 
-[Guard](https://github.com/guard/guard) gem helps to watch for file changes and run appropriate commands based on which file has changed. There are plugins that allow you to take different actions for different files. [guard-minitest](https://github.com/guard/guard-minitest) allows you to run tests when test files or app files change. [guard-livereload](https://github.com/guard/guard-livereload) refreshes the page automatically when `css`, `js` or `erb` files change. Foreman gem will be used to run multiple commands. [Rack-livereload](https://github.com/johnbintz/rack-livereload) is an option to enable livereload from middleware.
+[Guard](https://github.com/guard/guard) gem helps to watch for file changes and run appropriate commands based on which file has changed. There are plugins that allow you to take different actions for different files. [guard-minitest](https://github.com/guard/guard-minitest) allows you to run tests when test files or app files change. [guard-livereload](https://github.com/guard/guard-livereload) refreshes the page automatically when `.css`, `.js` or `.erb` files change. Foreman gem will be used to run multiple commands. [Rack-livereload](https://github.com/johnbintz/rack-livereload) is an option to enable livereload from middleware.
 
-Ensure the `Gemfile` reflects guard gems necessary for watching file changes. This will help hot reloading and automated testing.
+Ensure the `Gemfile` reflects guard gems necessary for watching file changes. This will help live-reloading and automated testing.
 
 ```Gemfile
-group :development, :test do
-  # ...
+#...
+group :test , :development do
   gem 'guard', '~>2.14.2',require:false
   gem 'guard-livereload','~>2.5.2', require: false
   gem 'guard-minitest', '~>2.4.6', require: false
   gem 'rack-livereload'
   gem 'foreman'
+end 
+#...
 ```
 
-Ensure you **do not remove** any existing gems in the process. Remeber the usual drill to build the image to include these new gems. 
+Ensure you **do not remove** any existing gems in the process, just add this group right at the end of the `Gemfile`. Remember the usual drill to build the image to include these new gems. 
 
 ```bash
 docker-compose up --build
@@ -336,7 +371,7 @@ docker-compose up --build
 
 You need to set up `guard` to watch for file changes. Run the following command to get started. Docker build step in the previous section would have got a container running. You need to get into that container and access a command prompt (just like your terminal). 
 
-If you need to run any command inside a container that is already running, you can use `docker-compose exec`. Here is how:
+If you need to run any command inside a container that is already running, you can use `docker-compose exec` *on a new terminal*, but you should be in the same project folder. Here is how:
 
 ```bash
 docker-compose exec --user $(id -u):$(id -g) app /bin/bash
@@ -353,15 +388,15 @@ That should create a `Guardfile` with instructions to watch for a list of extens
 
 **Note**: If plain docker commands are run with root privileges, you can use `--user $(id -u):$(id -g)` flag to run commands as a normal user. If you already have files created with root access, you'll have to `chown` the files. 
 
-Now that the `Guardfile` is ready, you can boot it up with this command. You'll have to run this inside the container prompt opened earlier.
+Now that the `Guardfile` is ready, you can boot it up with this command. You can run this command on the same terminal on which you initiated `Guardfile`.
 
 ```bash
 bundle exec guard -i
 ```
 
-That should show `guard is now watching at /app`. It should also show that it is **waiting for the browser to connect**. You'll get there in a minute. 
+That should show `guard is now watching at /project`. It should also show that it is **waiting for the browser to connect**. You'll get there in a minute. 
 
-Exit out of that prompt for now. You can use `Ctrl+C` to come out.
+Exit out of that prompt for now. You can use `Ctrl+C` to come out of `guard` and type `exit` to quit out of the terminal.
 
 ### Multiple Commands Using Foreman
 
@@ -396,6 +431,7 @@ services:
     command: foreman start -f Procfile.dev -p 3000
     volumes:
       - .:/project
+      - /project/tmp/pids/
     ports:
       - "3000:3000"
       - "35729:35729"
@@ -403,11 +439,29 @@ services:
       - db
 
 ```
-You'll notice two changes. One, the command has changed for `app` service. Now it is initiating Foreman.
+You'll notice three changes. One, the command has changed for `app` service. Now it is initiating Foreman.
 
 You may also notice an additional port. Livereload server uses port `35729`. You just exposed it outside of the container. This will ensure the browser can talk to the livereload server. 
 
-Bring the service down using `docker-compose down` and reboot it through `docker-compose up`. This should open up livereload in a separate service.
+**Troubleshooting:** The third change, an additional volume `/project/tmp/pids/` is actually a workaround temporary files that may block Rails server.
+
+Sometimes the container serving Rails app through `rails s` may not close and clean up properly if the container was not shut down properly. This is [an issue](https://github.com/docker/compose/issues/1393) faced by many. In such cases, you might see an error that looks like this:
+
+```bash
+app_1    | A server is already running. Check /project/tmp/pids/server.pid.
+app_1    | => Booting Puma
+#...
+app_1    | Exiting
+auth0railsapp_app_1 exited with code 1
+```
+
+Therein lies the clue. Rails server stores process id within the `tmp/pids/server.pid` file. You may need to **manually delete** that file and restart the services if you run into that error. 
+
+But you don't want to delete the file manually, do you? The issue referenced earlier has several ideas to fix this. One among them is to introduce a temporary folder in the container instead of using the `tmp` folder from host OS. Adding a temporary volume to `docker-compose.yml` file will do this. Small, but useful change.
+
+The second volume masks the `tmp` folder in the host OS so that all other `project` folders are available for the container except the `tmp`. When you run `docker-compose down`, this `tmp` folder within the container is wiped out.
+
+Now that you know what those three changes are about, bring the service down using `Ctrl+c` first, `docker-compose down` next and finally, reboot it through `docker-compose up`. 
 
 One last piece of work. To empower browser to receive and apply changes when files are altered. You can do it in two ways:
 
@@ -422,8 +476,7 @@ On to browser now. Install livereload extension on the browser from [here](http:
 
 Once you install the extension, you should be able to get the extension as an icon on the toolbar to make it accessible. When you click on the extension button, the container running services from `docker-compose.yml` should show `INFO - Browser connected.`. That means, **all pieces of the puzzle are now in place**.
 
-![guard-disconnected](https://auth0.com/blog/rails/image_f31.png)
-![guard-connected](https://auth0.com/blog/rails/image_f32.png)
+![guard-connected-with-browser](https://cdn.auth0.com/blog/docker-ruby/guard-browser-plugin-connection.png)
 
 Time to test it out. Also, time to get your own page on the screen.
 
@@ -432,15 +485,17 @@ If you are one of those front-end developers who install just about every possib
 
 In such cases, it is possible to ask the Rack middleware to inject the livereload script into the HTML being served from rails server.
 
-You have already installed the necessary gem named `rack-livereload` in the previous section. You just have to add this configuration.
+You have already installed the necessary gem named `rack-livereload` in the previous section. You just have to add this configuration, right at the top of the file.
 
 ```rb
-# in config/environment/development.rb file
-
-config.middleware.insert_after(ActionDispatch::Static, Rack::LiveReload)
+# in config/environments/development.rb file
+Rails.application.configure do
+  config.middleware.insert_after(ActionDispatch::Static, Rack::LiveReload)
+#... leave all other configurations intact 
+end
 ```
 
-Since this is a change at middleware level, you need to stop the docker services and start them again.
+Since this is a change at middleware level, you need to stop the docker services using `Ctrl+C` and start them again.
 
 ```bash
 docker-compose down
@@ -454,6 +509,8 @@ Back on the terminal, run the following command to create a Controller along wit
 ```bash
 docker-compose exec --user $(id -u):$(id -g) app rails g controller Home show
 ```
+
+**Note:** if you are getting *Permission denied* error at this stage. You can run the above command without `--user $(id -u):$(id -g)` and `chown` those files later as shown earlier in the article.
 
 You can run as many such commands on your host terminal while leaving `docker-compose up` to serve rails app on a separate terminal. You only have to **restart** if you make major changes to the app such as adding database migrations or new gems.
 
@@ -473,48 +530,14 @@ Final test if Guard is really worth all the effort. Open `app/views/home/show.ht
 
 **Voilà!** By the time you go back to the browser, it should already have the new content. Now's the time you lose yourself in changing styles and watching them appear on the screen as you hit `save`!
 
-![GIF of LiveReload]
+![LiveReloading the browser](https://cdn.auth0.com/blog/docker-ruby/livereload.gif)
 
-**Tip:** Sometimes the container serving Rails app through `rails s` may not close and clean up properly if the container was not shut down properly. In such cases, you might see an error that looks like this:
-
-```bash
-app_1    | A server is already running. Check /project/tmp/pids/server.pid.
-app_1    | => Booting Puma
-#...
-app_1    | Exiting
-auth0railsapp_app_1 exited with code 1
-```
-
-Therein lies the clue. Rails server stores process id within the `tmp/pids/server.pid` file. You may need to **manually delete** that file and restart the services if you run into that error. 
 
 ## Guard To Automate Tests
 
 Guard gem can also help you run tests when you change your application files. In fact, it is smart enough to run only those tests that need to be executed based on the files you change. 
 
-You have already included necessary `guard-minitest` gem to automate running tests on file changes, in **Precious Gems** section. You just need to get the test environment ready.
-
-### Setup MiniTest Environment
-
-Add this configuration to `config/database.yml`.
-
-```yaml
-default: &default
-  adapter: postgresql
-  encoding: unicode
-  host: db
-  user: postgres
-  port: 5432
-  password:
-  pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %> 
-```
-
-This is to ensure the `db` service created within the docker container is used as database server.
-
-And it is better to create a database instance upfront to avoid unnecessary error messages from Guard Minitest when it tries to run tests.
-
-```bash
-docker-compose exec app rails db:create RAILS_ENV=test
-```
+You have already included necessary `guard-minitest` gem to automate running tests on file changes, in **Precious Gems** section. You have also included the database necessary to run the tests within the `config/database.yml` file. When you ran `rails db:create` earlier, you would have noticed that a test database was also created. So, it just comes down to telling Guard to run tests when watched files change.
 
 ### Initiate Guard Minitest 
 
@@ -528,7 +551,7 @@ That should add additional instructions to `Guardfile`. Open the `Guardfile` in 
 
 1. **Comment** the default instructions 
 2. **Un-comment** instructions generated for `Rails 4`.
-3. **Change** the block to read like `guard "minitest", spring: "bin/rails test" do`. 
+3. **Change** the block to read like `guard :minitest, spring: "bin/rails test" do`. 
 
 Using spring is optional, spring is a preloader that starts tests faster. So the tests should run without point 3 as well. Despite being on Rails 5, those commands should work just ok. 
 
@@ -546,6 +569,7 @@ Remember changing the `config/routes.rb` file to point root at `home#show` actio
 The test would have the auto-generated line `get home_show_url`, just change it to `get root_url`. 
 
 ```rb
+  # test/controllers/home_controller_test.rb
   #...
   test "should get show" do
     get root_url
@@ -559,6 +583,8 @@ Save the file and you should be able to see your tests being run by Guard. And t
 ```bash
 guard_1  | 1 runs, 1 assertions, 0 failures, 0 errors, 0 skips
 ```
+
+![Unit tests automatically run by guard on file change](https://cdn.auth0.com/blog/docker-ruby/automatic-test-runs.gif)
 
 Now that you are guarded against your own inadvertent changes, you can confidently change the application as long as you have tests to cover your changes.
 
@@ -583,7 +609,7 @@ Command | Description
 ------- | -----------
 `docker system df` | List disk usage by docker
 `docker ps -a` | List all containers
-`docker images` | List docker images 
+`docker images` | List of docker images 
 `docker rmi image_name` | Remove image by repository name
 `docker rmi -f abcdef` | Remove image by ID
 `docker rm name` | Remove docker container by name
@@ -608,3 +634,4 @@ In part 2, you'll build core application functionality on top of this workflow w
 [Travis]: https://travis-ci.org/
 [Heroku]: https://dashboard.heroku.com
 [Auth0]: http://auth0.com/ 
+
