@@ -99,43 +99,48 @@ docker-compose up --build
 
 The **client secret** key from Auth0 should be available for the Rails app, but that has to be a secret. One way is to add it as a plain environment variable. But secrets as environment variables are [not so safe](https://www.engineyard.com/blog/encrypted-rails-secrets-on-rails-5.1) either. Rails 5.2 gives an option to encrypt secrets, store them in a file and commit them to version control. You can read more about it on [Engine Yard](https://www.engineyard.com/blog/rails-encrypted-credentials-on-rails-5.2).
 
-Get into a shell within the container to start with:
+While the container is up and running on a terminal, Get into another terminal to access shell within the container:
 
 ```bash
 docker-compose exec --user $(id -u):$(id -g) app /bin/bash
 ```
 
-That takes you to the terminal within the container. Then you'll have a chance to set up secret files.
+That takes you to the terminal within the container. Then you'll have a chance to set up secrets.
 
 Client secret is the value from the Auth0 Application you just created (*BookShelf* in this case). You can find this and the other properties in the same _Settings_ tab where you added the callback URL.
 
 When you are in the terminal within the container, run these commands:
 
 ```bash
-rails secrets:setup
-
 EDITOR=nano rails credentials:edit
 ```
 
-That'll open up the file in an editor within the terminal. It will have `secret_key_base` entry by default, just leave that alone. Add Set it up to look like the one below:
+That command will warn you about `nano` editor not having enough permission. Not to worry. Hit `Enter`. That'll open up the file in an editor within the terminal. It will have `secret_key_base` entry by default, just leave that alone. Add following records right after `secret_key_base`:
 
 ```yml
 # ....
 auth0:
   client_id: <YOUR_AUTH0_CLIENT_ID>
   secret: <YOUR_AUTH0_CLIENT_SECRET>
+
 ```
 
-Please make sure to replace `<YOUR_AUTH0_CLIENT_ID>` and `<YOUR_AUTH0_CLIENT_SECRET>` with the values from your Auth0 Application. The ones shown above are placeholders.
+Please make sure to replace `<YOUR_AUTH0_CLIENT_ID>` and `<YOUR_AUTH0_CLIENT_SECRET>` with the values from your Auth0 Application. The ones shown above are placeholders. Also, leave a new line after `secret` as the last line.
 
-**Warning:** the problem with using an editor in the terminal is, if you leave any syntax errors, it is difficult to open it again. `rails credentials:edit` throws error while trying to fix the very syntax error that is causing the issue. You might have to pull it from your previous commit and redo the changes. 
-
-Nano editor by default shows the keys, but just in case:
-
+You can save the changes by following the key strokes given in the editor:
 * `Ctrl + o` will save the changes 
 * `Ctrl + x` will close the editor
 
-You might have noticed that the `rails secrets:setup` command asked you to set up the flag `config.read_encrypted_secrets = true`. That's the instruction asking rails to load secrets from the encrypted file. So, you need to uncomment `config.require_master_key = true` in the `config/environments/production.rb` file.
+**Warning:** the problem with using an editor in the terminal is, if you leave any syntax errors, it is difficult to open it again. `rails credentials:edit` throws error while trying to fix the very syntax error that is causing the issue. You might have to pull it from your previous commit and redo the changes. 
+
+You can verify if your changes are saved properly by running the following command within the same shell:
+
+```
+rails credentials:show
+```
+You can now `exit` out of the shell.
+
+To instruct rails to load secrets from the encrypted file. So, you need to uncomment `config.require_master_key = true` in the `config/environments/production.rb` file.
 
 You will also set up the `RAILS_MASTER_KEY` on Heroku environment. But that can wait, as the local environment has the master key in the file `master.key` (and that **should not** be included in version control). Rails by default adds the file to `.gitignore` for you.
 
@@ -191,7 +196,6 @@ Rails.application.routes.draw do
   root "home#show"
   get "/auth/oauth2/callback" => "auth0#callback"
   get "/auth/failure" => "auth0#failure"
-
 end
 ```
 
@@ -226,7 +230,7 @@ The debug section will be blank for now, as there is no `userinfo` within sessio
 
 Click on that login link and it should take you to a beautiful page provided by [Auth0]. Just use the sign in option provided by Google (or any provider you've switched on within Auth0).
 
-Once you give permission, it should redirect back to the same home page on your app.
+Once you authorize the app to use your domain, it should redirect back to the same home page on your app.
 
 But this time, the `userinfo` from the session is printed for you on the page, along with email and name.  
 
