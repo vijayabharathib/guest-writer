@@ -1,33 +1,52 @@
 ---
 layout: post
-title: "Ruby on Rails - Killer Workflow with Docker (Part 2)"
+title: "Ruby on Rails—Killer Workflow with Docker (Part 2)"
 description: "Learn how to set up a killer dockerized workflow that will raise your productivity while developing Ruby on Rails applications."
-date: "2018-02-27 08:30"
-category: Ruby On Rails, Docker, Auth0, Travis CI, CI/CD
+longdescription: "In this series, you will learn how to set up a killer dockerized workflow that will raise your productivity while developing Ruby on Rails application. You will use tools like Docker, Docker Compose, Travis, and Heroku to set up a state-of-the-art workflow."
+date: 2018-05-15 08:30
+category: Technical Guide, Backend, Ruby On Rails
+design:
+  bg_color: "#333333"
+  image: https://cdn.auth0.com/blog/logos/node.png
 author:
   name: "Vijayabharathi Balasubramanian"
   url: "vijayabharathib"
   mail: "yajiv.vijay@gmail.com"
-  avatar: "https://twitter.com/vijayabharathib/profile_image?size=original"
+  avatar: "https://cdn.auth0.com/blog/guest-authors/vijay.jpeg"
+tags:
+- ruby-on-rails
+- docker
+- ruby
+- rails
+- ci
+- cd
+- ci/cd
+- continuous-integration
+- continuous-delivery
+- auth0
 related:
-- 2018-02-27-dockerized-workflow-ruby-on-rails-auth0
+- 2018-05-17-ruby-on-rails-killer-workflow-with-docker-part-1
+- 2017-05-22-load-balancing-nodejs-applications-with-nginx-and-docker
+- 2017-01-03-rails-5-with-auth0
 ---
 
-By now, your development workflow must have a solid foundation based on part 1. You have continuous testing and live reloading set up already. In this second and final part, you'll connect your app to Auth0. You'll establish a pipeline to automatically deploy your changes to [Heroku]. You'll also use [Travis CI] as a quality gate to run tests before deployment.
+**TL;DR:** By now, your development workflow must have a solid foundation based on [part 1](https://auth0.com/blog/ruby-on-rails-killer-workflow-with-docker-part-1). You have continuous testing and live reloading set up already. In this second and final part, you'll do three things. First, you will secure your app with [Auth0](https://auth0.com). Then, you'll establish a pipeline to automatically deploy your changes to [Heroku]. Lastly, you'll also use [Travis CI] as a quality gate to run tests before deployment.
 
-## Cloud Authentication by Auth0
+## Identity Management with Auth0
 
-It is better to have Authentication from the start. It will force you to think about modeling records accordingly. This is where you can use the free-tier login given by [Auth0] to try it out.
+It is better to have authentication from the start. It will force you to think about modeling records accordingly. This is where you can use the free-tier login given by [Auth0] to try it out.
 
 ### Auth0 Tenant and Client
 
-If you have not done so already, sign up to [Auth0] and follow the instructions:
+If you have not done so yet, now is a good time to <a href="https://auth0.com/signup" data-amp-replace="CLIENT_ID" data-amp-addparams="anonId=CLIENT_ID(cid-scope-cookie-fallback-name)">sign up for a free Auth0 account</a>. After signing up, follow these instructions:
 
-1. Sign up / Login to Auth0 
-2. Create a domain/tenant
-3. Create a regular web application 
+1. [Go to the Applications page in your Auth0 dashboard](https://manage.auth0.com/#/applications).
+2. Click on the _Create Application_ button.
+3. Input a new for the new application (e.g. "BookShelf").
+4. Select _Regular Web Applications_ as the application type.
+5. Click on the _Create_ button.
 
-This article uses tenant named *tugboat* and a client named *BookShelf*. 
+> This article uses tenant named *tugboat* (i.e. the domain is `tugboat.auth0.com`) and a client named *BookShelf*. 
 
 Once the client is created, within the list of technologies shown, select **Ruby On Rails**. [Auth0] shows the [Quick Start Guide](https://auth0.com/docs/quickstart/webapp/rails/01-login) for rails by default. 
 
@@ -35,29 +54,29 @@ A cool feature of the guide is that the code samples show your client name and o
 
 It also has instructions for some of the most **commonly faced issues**. It will come in handy if you run into any such issues. The focus, for now, is on getting the authentication working and moving on to building the app.
 
-[Auth0] reaches our application through callback URLs. So it is important to tell Auth0 client what the callback URL will be. Under settings section, find a text box that asks for **Allowed Callback URLs** and add this:
+[Auth0] reaches our application through callback URLs. So it is important to tell Auth0 client what the callback URL will be. Under the _Settings_ tab of your new application, find a text box that asks for **Allowed Callback URLs** and add this:
 
 ```bash
 http://localhost:3000/auth/oauth2/callback
 ```
 
-If you try to reach this URL on a browser now, you'll be getting a routing error. 
+Then, hit the _Save Changes_ button on the bottom of the page. If you try to reach this URL on a browser now, you'll be getting a routing error. 
 
-Time to Fix it.
+Time to fix it.
 
 ## Add Auth0 at Rails End
 
-The following are the changes at the back-end:
+The following are the changes that you will perform at your back-end:
+
 1. Add gem dependencies
 2. Add middleware
 3. Add a controller for authentication
 4. Add secrets
 5. Add Landing Pages
 
-
 ### Gem Dependencies
 
-Add these two gems to your `Gemfile`. `omniauth` provides basic authentication capabilities while `omniauth-auth0` implements a strategy that allows authentication from multiple providers.
+Add these two gems to your `Gemfile`. The `omniauth` one provides basic authentication capabilities while `omniauth-auth0` implements a strategy that allows authentication from multiple providers.
 
 ```Gemfile
 # Gemfile
@@ -78,7 +97,7 @@ docker-compose up --build
 
 ### Secrets Need To Stay So
 
-The **client secret** key from Auth0 should be available for the Rails app, but that has to be a secret. One way is to add it as a plain environment variable. But secrets as environment variables are [not so safe](https://www.engineyard.com/blog/encrypted-rails-secrets-on-rails-5.1) either. Rails 5.2 gives an option to encrypt secrets, store them in a file and commit them to version control. You can read more about it on  [Engine Yard](https://www.engineyard.com/blog/rails-encrypted-credentials-on-rails-5.2).
+The **client secret** key from Auth0 should be available for the Rails app, but that has to be a secret. One way is to add it as a plain environment variable. But secrets as environment variables are [not so safe](https://www.engineyard.com/blog/encrypted-rails-secrets-on-rails-5.1) either. Rails 5.2 gives an option to encrypt secrets, store them in a file and commit them to version control. You can read more about it on [Engine Yard](https://www.engineyard.com/blog/rails-encrypted-credentials-on-rails-5.2).
 
 Get into a shell within the container to start with:
 
@@ -88,11 +107,13 @@ docker-compose exec --user $(id -u):$(id -g) app /bin/bash
 
 That takes you to the terminal within the container. Then you'll have a chance to set up secret files.
 
-Client secret is the value from your [Auth0] client/application (*BookShelf* in this case).
+Client secret is the value from the Auth0 Application you just created (*BookShelf* in this case). You can find this and the other properties in the same _Settings_ tab where you added the callback URL.
 
-When you are in the terminal within the container, run these:
+When you are in the terminal within the container, run these commands:
 
 ```bash
+rails secrets:setup
+
 EDITOR=nano rails credentials:edit
 ```
 
@@ -101,12 +122,11 @@ That'll open up the file in an editor within the terminal. It will have `secret_
 ```yml
 # ....
 auth0:
-  client_id: J0auth0client0id
-  secret: 0sample0secret0from0auth0
-
+  client_id: <YOUR_AUTH0_CLIENT_ID>
+  secret: <YOUR_AUTH0_CLIENT_SECRET>
 ```
 
-Please make sure you use actual values from [Auth0] website. The ones shown above are placeholders.
+Please make sure to replace `<YOUR_AUTH0_CLIENT_ID>` and `<YOUR_AUTH0_CLIENT_SECRET>` with the values from your Auth0 Application. The ones shown above are placeholders.
 
 **Warning:** the problem with using an editor in the terminal is, if you leave any syntax errors, it is difficult to open it again. `rails credentials:edit` throws error while trying to fix the very syntax error that is causing the issue. You might have to pull it from your previous commit and redo the changes. 
 
@@ -115,14 +135,13 @@ Nano editor by default shows the keys, but just in case:
 * `Ctrl + o` will save the changes 
 * `Ctrl + x` will close the editor
 
-You might have noticed that the `rails secrets:setup` command asked you to set up the flag `config.read_encrypted_secrets = true`. That's the instruction asking rails to load secrets from the encrypted file. You need to add `config.require_master_key = true` to `config/environments/production.rb`.
-
+You might have noticed that the `rails secrets:setup` command asked you to set up the flag `config.read_encrypted_secrets = true`. That's the instruction asking rails to load secrets from the encrypted file. So, you need to uncomment `config.require_master_key = true` in the `config/environments/production.rb` file.
 
 You will also set up the `RAILS_MASTER_KEY` on Heroku environment. But that can wait, as the local environment has the master key in the file `master.key` (and that **should not** be included in version control). Rails by default adds the file to `.gitignore` for you.
 
 ### Add Middleware Strategy
 
-Omniauth has many implementations called strategies. This one from Auth0 allows auth0 client to interact with your rails application. Add a new file named `auth0.rb` within `config/initializers` folder.
+Omniauth has many implementations called strategies. This one from Auth0 allows the Auth0 client to interact with your Rails application. Add a new file named `auth0.rb` within `config/initializers` folder and input the following code:
 
 ```rb
 # config/initializers/auth0.rb
@@ -132,22 +151,23 @@ Rails.application.config.middleware.use OmniAuth::Builder do
     :auth0,
     Rails.application.credentials.auth0[:client_id],
     Rails.application.credentials.auth0[:secret],
-    'tugboat.auth0.com',
+    '<YOUR_AUTH0_DOMAIN>',
     callback_path: "/auth/oauth2/callback",
     authorize_params: {
       scope: 'openid email profile',
-      audience: 'https://tugboat.auth0.com/userinfo'
+      audience: 'https://<YOUR_AUTH0_DOMAIN>/userinfo'
     }
   )
 end
 ```
 
-**Note**: It is important to have `email` within the scope section for you to get the email as part of the information sent from Auth0. Read more about [scopes](https://auth0.com/docs/scopes/current) from Auth0.
+In this code, you will have to replace `<YOUR_AUTH0_DOMAIN>` with your own Auth0 domain (in my case: `tugboat.auth0.com`).
 
+> **Note**: It is important to have `email` within the scope section for you to get the email as part of the information sent from Auth0. Read more about [scopes](https://auth0.com/docs/scopes/current) from Auth0.
 
 ### Controller To Handle Auth0 CallBack
 
-Add a controller within rails app to handle callback and failure from Auth0. You'll change it later to add user management and logout functionalities. For now, this will do.
+Now, add a controller within Rails app to handle callback and failure from Auth0. You'll change it later to add user management and logout functionalities. For now, this will do.
 
 ```rb
 # app/controllers/auth0_controller.rb
@@ -161,7 +181,6 @@ class Auth0Controller < ApplicationController
     @error_msg = request.params['message']
   end
 end
-
 ```
 
 And add relevant routes so that Rails can hand over calls to respective controller actions.
@@ -176,7 +195,7 @@ Rails.application.routes.draw do
 end
 ```
 
-This will grow as you build the application. 
+This file will grow as you build the application. 
 
 Bring the container down if it is already running and boot it up again to ensure middleware changes take effect.
 
@@ -1214,4 +1233,3 @@ Finally, thanks to [Bruno Krebs](https://twitter.com/brunoskrebs) for his excell
 [Travis]: https://travis-ci.org/
 [Heroku]: https://dashboard.heroku.com
 [Auth0]: http://auth0.com/ 
-
