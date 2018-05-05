@@ -310,24 +310,28 @@ Now that your own quality gate is ready, you can move on to publishing your appl
 
 Heroku allows you to create apps for staging and production environment. It also allows automatic deployment from different branches. Free tier allows you to run your app in production mode and test it out.
 
-Sign up to [Heroku] first and set up a link to your GitHub profile. You can do this within **Applications** tab in **Account Settings**.
+Sign up to [Heroku] first and set up a link to your GitHub profile. You can do this within [Applications](https://dashboard.heroku.com/account/applications) tab in **Account Settings**.
 
 Once a link to GitHub profile is in place, You need to follow these steps to create a new pipeline:
 
-1. create a new pipeline within your portfolio. Use the `new` menu at the top right corner.
+1. Come back to the [Heroku home page](https://dashboard.heroku.com/apps) and create a new pipeline within your portfolio. Use the `new` menu at the top right corner.
 2. While creating the pipeline, connect to the **GitHub repository** where you've stored the app.
 
 Step 2 above will ensure your app is ready for automatic deployment on successful test runs on GitHub (via TravisCI).
 
 ### Setup Staging App
 
-Within the pipeline, click on **Add app** -> **create new app** under staging area. Give it a name like `bookshelfstaging`. Once you create the app, use the arrow menu at the top of the staging card to open menu. You'll have an option to **configure automatic deployment**. Select `staging` branch for automatic deployment and check the option to **wait for CI**.
+Within the _staging_ area on the pipeline page, click on **Add app** -> **create new app**. Give it a name like `bookshelfstaging`. 
 
-Now that your staging app is ready. You can click on the staging link that opens up the detailed staging page. There you'll have fine-grained control over all aspects of the application. 
+Once you create the app, use the arrow menu at the top to access an option named _configure automatic deployment_. Select `staging` branch for automatic deployment, check the option to _wait for CI_ and click on _Enable Automatic Deploy_. You can close that popup once your changes are applied.
 
-For now, search for a **Postgres** addon under **Resources** tab. Select **Heroku Postgres** from the search results, select **Hobby dev - free** option if you don't want to pay now and click on **Provision**.
+Now that your staging app is ready. You can click on the name you have given under _staging area_ to opens up the detailed staging page. There you'll have fine-grained control over all aspects of the application. 
 
-Your next stop should be **Settings** tab where you can **Reveal Config Vars**. You should be able to see a `DATABASE_URL` in there, which was added by default when you added **Heroku Postgres** addon. But where does this environment variable go? That would be the `config/database.yml` file.
+For now, search for a _Postgres_ addon under _Resources_ tab. Select _Heroku Postgres_ from the search results, select _Hobby dev - free_ option if you don't want to pay now and click on _Provision_.
+
+Your next stop should be _Settings_ tab where you can _Reveal Config Vars_ within the  _Config Vars_ section. Add a key named `RAILS_MASTER_KEY` and the value for the key will be from `config/master.key`. Click _Add_ to save the changes.
+
+You should be able to see a `DATABASE_URL` in there, which was added by default when you added _Heroku Postgres_ addon. But where does this environment variable go? That would be the `config/database.yml` file.
 
 Change the `production` section to look like this:
 
@@ -339,32 +343,29 @@ production:
 
 In fact, the `database.yml` file has this instruction commented above the `production` section. You can just un-comment the section while commenting out the previous `production` section. 
 
-That should also remind you about the `RAILS_MASTER_KEY`. The same **Config Vars** section allows you to add that as a key and the value for the key will be from `config/master.key`.
-
 Commit the change to `database.yml` file and push it to staging branch. 
 
 This is probably the highest point of the movie. You should be able to see a lot of things coming together. You can watch these live:
 
-* Travis tests the new changes
-* Heroku Pipeline page shows *One check pending*
-* Heroku starts to build the app once Travis tests are completed.
-* Heroku shows a hash for the deployed version.
+* Travis triggers a build and tests the new changes
+* While Travis build is in progress, Heroku Pipeline page shows *One check pending*
+* Heroku starts to build the app once Travis tests are completed. You can view the _Build log_ as the build progresses.
+* Heroku shows a hash for the deployed version along with a message _Deployed just now_.
 
 **You are almost there!** Now you should be able to open the staging region of the app in the browser. Heroku shows that as an option on the arrow menu. In this case, it launches https://bookshelfstaging.herokuapp.com/ . 
 
 ![Heroku automatic deployment](https://cdn.auth0.com/blog/docker-ruby/show_heroku_deployment_after_travis_test.gif)
 
-Just one problem. The *Login* link on the home page is broken. But a helpful message **Callback URL mismatch** is shown by Auth0. That's the hint.
+Just one problem. The *Login* link on the home page is broken. But a helpful message _Callback URL mismatch_ is shown by Auth0. That's the hint.
 
-Go back to your Auth0 client and add the callback URL shown on the error page. Now the **Allowed Callback URLs** box should look like:
+The error page also showed a link to _Applications Settings Page_ to easily go back to your Auth0 client. Add the callback URL shown on the error page. Now the _Allowed Callback URLs_ box should look like:
 
 ```
-http://localhost:3000/auth/oauth2/callback,https://bookshelfstaging.herokuapp.com/auth/oauth2/callback
+http://localhost:3000/auth/oauth2/callback,https://<YOUR_STAGING_APP_NAME>.herokuapp.com/auth/oauth2/callback
 ```
+Use the staging app name that comes up in the url instead of <YOUR_STAGING_APP_NAME> in the URL above. Note the delimiter `,` right after the first URL. **Remember to save** the changes to settings. That covers both local and staging environment. 
 
-**Remember to save** the changes to settings. That covers both local and staging environment. 
-
-If you go back to the app on the browser and click on **Login** link now, you should see the familiar Auth0 login page. If you try and log in, it should come back to the app with the home page showing plain text details of the login.
+If you go back to the app on the browser and click on **Login** link now, you should see the familiar Auth0 login page. If you try and log in, it should come back to the app with the home page showing user details in plain text.
 
 That's it. 
 
@@ -372,38 +373,47 @@ That's it.
 
 There is nothing new here. You have already done all that in the staging area. You'll have to repeat the steps.
 
-* Create another application under **production** section. 
-* Use **Configure automatic deployment** option to select deployment from `master` branch this time. 
-* Remember to enable **wait for CI**.
-* Add a **Heroku Postgres** addon.
+* Create another application under _production_ section. 
+* Use _Configure automatic deployment_ option to select deployment from `master` branch this time. 
+* Remember to enable _wait for CI_.
+* Add a _Heroku Postgres_ addon.
 * **No need** to touch `database.yml`. You are already covered there.
-* Add `RAILS_MASTER_KEY` config var.
+* Add `RAILS_MASTER_KEY` config variable.
 
 But how do you deploy something to production? That's when you go back to a very well known workflow on GitHub.
 
-You create a [Pull Request](https://help.github.com/articles/creating-a-pull-request/) on your repository. Helpfully, GitHub shows a message that shows recently published branches, along with an option to **Compare and Pull Request**.  Click on that and it should take you to a new pull request page.
+You create a [Pull Request](https://help.github.com/articles/creating-a-pull-request/) on your repository. Helpfully, GitHub shows a message that shows recently published branches, along with an option to _Compare and Pull Request_.  Click on that and it should take you to a new pull request page.
 
-Give it a good title and description. Watch out for the message **Able to merge** with a green tick. That's a sign that `master` branch can receive changes from your `staging` branch. This will be helpful when more than one person gets to push changes.
+Give it a good title and description. Watch out for the message _Able to merge_ with a green tick. That's a sign that `master` branch can receive changes from your `staging` branch. This will be helpful when more than one person gets to push changes.
 
-Once you create the pull request, the detailed PR page shows **One check pending** and starts to build and test the project via Travis CI.
+Once you create the pull request, the detailed PR page shows _One check pending_ and starts to build and test the pull request via Travis CI.
 
 Note: testing the pull request takes time as the bundler cache is not used from staging branch.
 
-Once all Travis Tests are over, you'll see **All checks** have passed with the merge button turning bright green. You can now safely **merge the pull request** to `master` branch.
+Once all Travis Tests are over, you'll see _All checks_ have passed with the merge button turning bright green. You can now safely _merge the pull request_ to `master` branch. Click on _Merge pull request_ button and then on _Confirm Merge_ button. 
 
-Once the pull request is merged, Travis starts the final test. You can **watch the magic** as it unfolds within the Heroku pipeline page.
+Once the pull request is merged, Travis starts the final test, this time for the commit added to the `master` branch via the PR. You can **watch the magic** as it unfolds within the Heroku pipeline page.
 
-Now, use the **Open app in browser** option from Heroku app. You should see the familiar page. And if you click on the **Login** link, you should see familiar failure!
+>**Tip:** If you want to cut down on one of these builds while following the tutorial, Travis CI settings allow you to switch off _Build for PRs_. In reality, you'd want to leave that option switched on when you have several pull requests coming in.
 
-Auth0 callback URL mismatch. Take that URL shown on that error page and add it to **Allowed Callback URLs** section within Auth0 client.
+Your production app within Heroku should show that the production app has been successfully built and deployed, with a hash. 
+
+In case it shows no activity, give the page a _Refresh_. If your build fails, check the logs. `RAILS_MASTER_KEY` is an important one that can trip you off when it is not setup properly. _Deploy_ tab within each app gives you an option to manually trigger deploy when you make minor configuration changes.
+
+Now, use the _Open app in browser_ option from Heroku app. You should see the familiar page. And if you click on the _Login_ link, you should see familiar failure!
+
+Auth0 callback URL mismatch. Take that URL shown on that error page and add it to _Allowed Callback URLs_ section within Auth0 client.
 
 It looks like this now:
 
 ```
-http://localhost:3000/auth/oauth2/callback,https://bookshelfstaging.herokuapp.com/auth/oauth2/callback,https://shelvedbooks.herokuapp.com/auth/oauth2/callback
+http://localhost:3000/auth/oauth2/callback,https://<YOUR_STAGING_APP_NAME>.herokuapp.com/auth/oauth2/callback,
+https://<YOUR_PRODUCTION_APP_NAME>.herokuapp.com/auth/oauth2/callback
 ```
 
-Back at the browser, if you load the production application and try **Login**, you should get the user details back on home screen.
+Replace `<YOUR_PRODUCTION_APP_NAME> with your actual production app ame. Easiest way is to copy the URL shown on the Auth0 error page, just like what you did while setting up staging.
+
+Back at the browser, if you load the production application and try _Login_, you should get the user details back on home screen.
 
 So much for a full-scale workflow. You are done. From here on out, building your app is where you'd spend your time.
 
