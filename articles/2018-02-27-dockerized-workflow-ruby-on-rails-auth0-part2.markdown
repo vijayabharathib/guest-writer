@@ -248,11 +248,13 @@ Next up is to get help from a nice bot. [Travis] allows you to test the applicat
 
 Once you set up a login within Travis-CI, you should be able to add your git repository to the list.
 
-Click on that small **+** button just beside **My repositories**. It should list down your git repositories. If you cannot find it, try **Sync Account** once.
+Click on that small **+** button just beside **My repositories** on Travis Home Page. It should list down your git repositories. If you cannot find it, try **Sync Account** once.
 
-You can click on that small cog that denotes settings and you should be able to select when do you want to build.
+Flip the repository on using the checkbox on the left.
 
-Switch on **Build only if .travis.yml is present** option. 
+Click on the small cog that denotes settings and you should be able to select when do you want to build.
+
+Switch on **Build only if .travis.yml is present** option.
 
 Back at the project folder, add a file named `.travis.yml` to the project root folder with this content:
 
@@ -269,27 +271,32 @@ before_script:
 script:
   - bin/rake db:migrate RAILS_ENV=test
   - bin/rake 
+
 ```
 
-Translating that, you are instructing Travis to use `ruby`. `bundle install` is the one that'll take a long time, so you are caching that for future use. You are asking for a `postgresql` service to enable database.
+Translating that, you are instructing Travis to use `ruby`. The command `bundle install` is the one that'll take a long time, so you are caching that for future use. You are asking for a `postgresql` service to enable database.
 
 The actual `script` section enables database migration. You do not have any database yet, but worth making it future proof. 
 
-`before_script` section instructed Travis to use the new `database.travis.yml` by copying it to default `database.yml`. You've also created a database for test region. This is required as the original one is adapted to run tests locally in your docker container test environment:
+The section named`before_script` instructed Travis to use the new `database.travis.yml` by copying it to default `database.yml`. You've also created a database for test region. This is required as the original `database.yml` is adapted to run tests locally in your docker container test environment. But where is the `database.travis.yml` file coming from? That's the one you'll create next:
 
 ```yml
+# config/database.travis.yml
 test:
   adapter: postgresql
   database: auth0app_test
+
 ```
 
-**Commit and push** your changes to `staging` branch. You should see Travis coming alive once the changes are pushed.
+**Commit and push** your changes to `staging` branch. You should see Travis coming alive once the changes are pushed. You can watch the build and test progress on the tab named **Current** on the repository page of Travis CI.
 
 The first build **failed!**. Get comfortable reading through the error messages on the Travis build log.
 
-You can see that missing `RAILS_MASTER_KEY` is the reason. You can set it up on Travis repository settings page. You can access it under 'more options' menu.
+You can see that missing `RAILS_MASTER_KEY` is the reason. You can set it up on Travis repository settings page. You can access it under 'more options' menu. 
 
-Under **Environment Variables** section, add a variable named `RAILS_MASTER_KEY` and add the value from your key file stored at `config/master.key`. Ensure you disable `Display value in build log`, that would defeat the whole purpose of keeping secrets.
+>**Tip:** There was a strange behavior on Travis once, where I couldn't find _Settings_ as an entry under _More Options_ menu and I had to go back to _Add Repository_ page to get into settings. Refresh the repository page showing _failed build_ in bright red. That would also help you bring things back to normal.
+
+Under **Environment Variables** section, add a variable named `RAILS_MASTER_KEY` and fill the value field with the key stored at `config/master.key`. Click _Add_ to save the environment variable. Ensure you disable `Display value in build log`, that would defeat the whole purpose of keeping secrets.
 
 Go back to the **Current** tab on your [TravisCI] repository page and use the option **Restart Build**.
 
