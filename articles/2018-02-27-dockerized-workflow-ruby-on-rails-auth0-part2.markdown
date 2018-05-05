@@ -101,7 +101,7 @@ The **client secret** key from Auth0 should be available for the Rails app, but 
 
 Rails 5.2 gives an option to encrypt such secrets, in the name of **credentials**, store them in a file and commit them to version control. You can read more about it on [Engine Yard](https://www.engineyard.com/blog/rails-encrypted-credentials-on-rails-5.2). These credentials are stored in `credentials.yml.enc` while the key to decrypt the file is stored within `master.key` file. These two files are _automatically_ generated when you created a new Rails project. 
 
->**Tip**: It is very important that you do not loose `master.key` file. It is not and should not be added to the repository. Rails project adds `master.key` to `.gitignore` by default, so that it is excluded from version control. There is no way of recovering it if you permanently delete the file. In such cases, you might have to delete `credentials.yml.enc` and run `rails credentials:edit` to generate both the files from scratch. 
+>**Tip**: It is very important that you do not lose `master.key` file. It is not and should not be added to the repository. Rails project adds `master.key` to `.gitignore` by default, so that it is excluded from version control. There is no way of recovering it if you permanently delete the file. In such cases, you might have to delete `credentials.yml.enc` and run `rails credentials:edit` to generate both the files from scratch. 
 
 While the container is up and running on a terminal, Get into another terminal to access shell within the container:
 
@@ -131,7 +131,7 @@ auth0:
 
 Please make sure to replace `<YOUR_AUTH0_CLIENT_ID>` and `<YOUR_AUTH0_CLIENT_SECRET>` with the values from your Auth0 Application. The ones shown above are placeholders. Also, leave a new line after `secret` as the last line.
 
-You can save the changes by following the key strokes given in the editor:
+You can save the changes by following the keystrokes given in the editor:
 * `Ctrl + o` will save the changes 
 * `Ctrl + x` will close the editor
 
@@ -240,21 +240,19 @@ But this time, the `userinfo` from the session is printed for you on the page, a
 
 **Congratulations!** You have effectively set up a trustable cloud authentication system that you can build upon. 
 
-![image of session info]()
-
 ## Travis CI Integration
 
 Next up is to get help from a nice bot. [Travis] allows you to test the application when you commit new changes to [GitHub] repository or when you create pull requests and even when you merge pull requests.
 
 Once you set up a login within Travis-CI, you should be able to add your git repository to the list.
 
-Click on that small **+** button just beside **My repositories** on Travis Home Page. It should list down your git repositories. If you cannot find it, try **Sync Account** once.
+Click on that small **+** button just beside _My repositories_ on Travis Home Page. It should list down your git repositories. If you cannot find it, try _Sync Account_ once.
 
 Flip the repository on using the checkbox on the left.
 
 Click on the small cog that denotes settings and you should be able to select when do you want to build.
 
-Switch on **Build only if .travis.yml is present** option.
+Switch on _Build only if .travis.yml is present_ option.
 
 Back at the project folder, add a file named `.travis.yml` to the project root folder with this content:
 
@@ -288,17 +286,17 @@ test:
 
 ```
 
-**Commit and push** your changes to `staging` branch. You should see Travis coming alive once the changes are pushed. You can watch the build and test progress on the tab named **Current** on the repository page of Travis CI.
+**Commit and push** your changes to `staging` branch. You should see Travis coming alive once the changes are pushed. You can watch the build and test progress on the tab named _Current_ on the repository page of Travis CI.
 
 The first build **failed!**. Get comfortable reading through the error messages on the Travis build log.
 
 You can see that missing `RAILS_MASTER_KEY` is the reason. You can set it up on Travis repository settings page. You can access it under 'more options' menu. 
 
->**Tip:** There was a strange behavior on Travis once, where I couldn't find _Settings_ as an entry under _More Options_ menu and I had to go back to _Add Repository_ page to get into settings. Refresh the repository page showing _failed build_ in bright red. That would also help you bring things back to normal.
+>**Tip:** There was a strange behavior on Travis once, where I couldn't find _Settings_ as an entry under _More Options_ menu and I had to go back to _Add Repository_ page to get into settings. **Refresh the repository page** showing _failed build_ in bright red. That would also help you bring things back to normal.
 
-Under **Environment Variables** section, add a variable named `RAILS_MASTER_KEY` and fill the value field with the key stored at `config/master.key`. Click _Add_ to save the environment variable. Ensure you disable `Display value in build log`, that would defeat the whole purpose of keeping secrets.
+Under _Environment Variables_ section, add a variable named `RAILS_MASTER_KEY` and fill the value field with the key stored at `config/master.key`. Click _Add_ to save the environment variable. Ensure you disable `Display value in build log`, that would defeat the whole purpose of keeping secrets.
 
-Go back to the **Current** tab on your [TravisCI] repository page and use the option **Restart Build**.
+Go back to the _Current_ tab on your [TravisCI] repository page and use the option _Restart Build_.
 
 You should see a **green and happy** badge showing the test was successful. 
 
@@ -315,7 +313,7 @@ Sign up to [Heroku] first and set up a link to your GitHub profile. You can do t
 Once a link to GitHub profile is in place, You need to follow these steps to create a new pipeline:
 
 1. Come back to the [Heroku home page](https://dashboard.heroku.com/apps) and create a new pipeline within your portfolio. Use the `new` menu at the top right corner.
-2. While creating the pipeline, connect to the **GitHub repository** where you've stored the app.
+2. While creating the pipeline, connect to the _GitHub repository_ where you've stored the app.
 
 Step 2 above will ensure your app is ready for automatic deployment on successful test runs on GitHub (via TravisCI).
 
@@ -323,13 +321,13 @@ Step 2 above will ensure your app is ready for automatic deployment on successfu
 
 Within the _staging_ area on the pipeline page, click on **Add app** -> **create new app**. Give it a name like `bookshelfstaging`. 
 
-Once you create the app, use the arrow menu at the top to access an option named _configure automatic deployment_. Select `staging` branch for automatic deployment, check the option to _wait for CI_ and click on _Enable Automatic Deploy_. You can close that popup once your changes are applied.
+Once you create the app, use the arrow menu at the top to access an option named _configure automatic deployment_. Select `staging` branch for automatic deployment, check the option to _wait for CI_ and click on _Enable Automatic Deploy_. You can close that pop up once your changes are applied.
 
 Now that your staging app is ready. You can click on the name you have given under _staging area_ to opens up the detailed staging page. There you'll have fine-grained control over all aspects of the application. 
 
 For now, search for a _Postgres_ addon under _Resources_ tab. Select _Heroku Postgres_ from the search results, select _Hobby dev - free_ option if you don't want to pay now and click on _Provision_.
 
-Your next stop should be _Settings_ tab where you can _Reveal Config Vars_ within the  _Config Vars_ section. Add a key named `RAILS_MASTER_KEY` and the value for the key will be from `config/master.key`. Click _Add_ to save the changes.
+Your next stop should be the _Settings_ tab where you can _Reveal Config Vars_ within the  _Config Vars_ section. Add a key named `RAILS_MASTER_KEY` and the value for the key will be from `config/master.key`. Click _Add_ to save the changes.
 
 You should be able to see a `DATABASE_URL` in there, which was added by default when you added _Heroku Postgres_ addon. But where does this environment variable go? That would be the `config/database.yml` file.
 
@@ -363,9 +361,9 @@ The error page also showed a link to _Applications Settings Page_ to easily go b
 ```
 http://localhost:3000/auth/oauth2/callback,https://<YOUR_STAGING_APP_NAME>.herokuapp.com/auth/oauth2/callback
 ```
-Use the staging app name that comes up in the url instead of <YOUR_STAGING_APP_NAME> in the URL above. Note the delimiter `,` right after the first URL. **Remember to save** the changes to settings. That covers both local and staging environment. 
+Use the staging app name that comes up in the URL instead of <YOUR_STAGING_APP_NAME> in the URL above. Note the delimiter `,` right after the first URL. **Remember to save** the changes to settings. That covers both local and staging environment. 
 
-If you go back to the app on the browser and click on **Login** link now, you should see the familiar Auth0 login page. If you try and log in, it should come back to the app with the home page showing user details in plain text.
+If you go back to the app on the browser and click on _Login_ link now, you should see the familiar Auth0 login page. If you try and log in, it should come back to the app with the home page showing user details in plain text.
 
 That's it. 
 
@@ -398,7 +396,7 @@ Once the pull request is merged, Travis starts the final test, this time for the
 
 Your production app within Heroku should show that the production app has been successfully built and deployed, with a hash. 
 
-In case it shows no activity, give the page a _Refresh_. If your build fails, check the logs. `RAILS_MASTER_KEY` is an important one that can trip you off when it is not setup properly. _Deploy_ tab within each app gives you an option to manually trigger deploy when you make minor configuration changes.
+In case it shows no activity, give the page a _Refresh_. If your build fails, check the logs. `RAILS_MASTER_KEY` is an important one that can trip you off when it is not set up properly. The _Deploy_ tab within each app gives you an option to manually trigger deploy when you make minor configuration changes.
 
 Now, use the _Open app in browser_ option from Heroku app. You should see the familiar page. And if you click on the _Login_ link, you should see familiar failure!
 
@@ -411,7 +409,7 @@ http://localhost:3000/auth/oauth2/callback,https://<YOUR_STAGING_APP_NAME>.herok
 https://<YOUR_PRODUCTION_APP_NAME>.herokuapp.com/auth/oauth2/callback
 ```
 
-Replace `<YOUR_PRODUCTION_APP_NAME> with your actual production app ame. Easiest way is to copy the URL shown on the Auth0 error page, just like what you did while setting up staging.
+Replace `<YOUR_PRODUCTION_APP_NAME> with your actual production app name. The easiest way is to copy the URL shown on the Auth0 error page, just like what you did while setting up staging.
 
 Back at the browser, if you load the production application and try _Login_, you should get the user details back on home screen.
 
@@ -439,9 +437,9 @@ The idea is to allow users to move books between shelves.
 A little primer on Rails components.
 
 * Models are abstractions to database records. They represent the domain.
-* Controllers respond to user interactions. They are talk to the models and provide data to presentation layer.
+* Controllers respond to user interactions. They talk to the models and provide data to the presentation layer.
 * Helpers are utility functions that support controllers and sometimes Views.
-* Views are HTML pages that you see on the browser. They are generated dynamically using the data provided by controllers. There can be static pages too.
+* Views are HTML pages that you see in the browser. They are generated dynamically using the data provided by controllers. There can be static pages too.
 
 You'll create all these now.
 
@@ -525,7 +523,7 @@ class Shelf < ApplicationRecord
 end
 ```
 
-For a particular user, one book can be under only one shelf. This constrain is added via `validates` statement and this is in line with the `index` created during migration.
+For a particular user, one book can be on only one shelf. This constraint is added via `validates` statement and this is in line with the `index` created during migration.
 
 Finally, another scope that filters shelf by a user, this can be used in controllers at a later stage.
 
@@ -571,7 +569,7 @@ books=Book.create([
 ])
 ```
 
-Run the seeding command on a shell within the container. If you are still within the terminal that generated models and migrated db, you are right where you need to be and you can skip the `docker-compose exec` and get to `rails db:seed`:
+Run the seeding command on a shell within the container. If you are still within the terminal that generated models and migrated DB, you are right where you need to be and you can skip the `docker-compose exec` and get to `rails db:seed`:
 
 ```bash
 docker-compose exec app /bin/bash
@@ -1144,7 +1142,7 @@ The reason? `release` tag in the `Procfile` migrated the database schema. So use
 
 Great! Take a break, you deserve it!
 
-And you know how to take this to production? Remember creating a pull request between _staging_ and _master_ branches on [GitHub]? Same process should push things to production on Heroku, once you merge the pull request.
+And you know how to take this to production? Remember creating a pull request between _staging_ and _master_ branches on [GitHub]? The same process should push things to production on Heroku, once you merge the pull request.
 
 **Logs:**
 There are three logs on Heroku that you'll find useful.
@@ -1270,7 +1268,7 @@ services:
 
 While debugging with `byebug`, you need to use `docker-compose run --service-ports app` instead of `docker-compose up`. 
 
-Once the server is ready, reload the home page. If you notice, the home page keeps loading for a long time. That is because byebug caught up the execution and waiting for you on the terminal.
+Once the server is ready, reload the home page. If you notice, the home page keeps loading for a long time. That is because `byebug` caught up the execution and waiting for you on the terminal.
 
 Go ahead and have a look at the terminal. `byebug` shows the line where it paused execution. You can type `help` or `var` and hit `Enter` to get some output.
 
