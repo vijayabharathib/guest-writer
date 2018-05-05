@@ -436,6 +436,15 @@ Take in another cup of your favorite drink. You are going put the authentication
 
 The idea is to allow users to move books between shelves. 
 
+A little primer on Rails components.
+
+* Models are abstractions to database records. They represent the domain.
+* Controllers respond to user interactions. They are talk to the models and provide data to presentation layer.
+* Helpers are utility functions that support controllers and sometimes Views.
+* Views are HTML pages that you see on the browser. They are generated dynamically using the data provided by controllers. There can be static pages too.
+
+You'll create all these now.
+
 ### Models and DB
 
 Start by creating necessary models with the usual commands. You'd just need three models:
@@ -446,7 +455,7 @@ Start by creating necessary models with the usual commands. You'd just need thre
 
 While it is possible to run commands from the host terminal by creating a temporary container each time, it may not be the quickest solution. It is better to get into a bash prompt in the terminal within the container.
 
-Run this while you are in the app folder:
+Make sure that the container is running Rails server and guard. On another terminal, run this (while you are in the project folder):
 
 ```bash
 docker-compose exec --user $(id -u):$(id -g) app /bin/bash
@@ -476,26 +485,32 @@ rails g model Book title:string author:string
 rails g model Shelf place:integer user:references book:references
 ```
 
-`rails g` stands for `rails generate`. That should create database migration files, models, and tests. Before you apply the migrations to the database, **there is one important addition** to the shelves migration file.  Add an index to mark the combination of book and user as a unique combination.
+>Note: `rails g scaffold Book title:string` will create all the routes, controller, and actions along with tests and helper files. Try it and see if you'd like it.
 
-Note: `rails g scaffold Book title:string` will create all the routes, controller, and actions along with tests and helper files. Try it and see if you'd like it.
+`rails g` stands for `rails generate`. That should create database migration files, models, and tests. Before you apply the migrations to the database, **there is one important addition** to the shelves migration file.  Leave the block `create_table` as it is. Add an index to mark the combination of book and user as a unique combination.
 
 ```rb
 # db/migrate/2018...._create_shelves.rb
-class CreateShelves < ActiveRecord::Migration[5.1]
+class CreateShelves < ActiveRecord::Migration[5.2]
   def change
     create_table :shelves do |t|
-     # ...
+      t.integer :place
+      t.references :user, foreign_key: true
+      t.references :book, foreign_key: true
+      t.timestamps
     end
-
     add_index :shelves, [:book_id,:user_id], unique: true
   end
 end
 ```
 
-Of course, you might want to think about a proper indexing strategy for other models.
+Remember to save the file before you move on. Of course, you might want to think about a proper indexing strategy for other models.
 
 Time to apply the database changes. Within the same terminal that runs inside the container, you can run `rails db:migrate` to apply changes.
+
+```
+rails db:migrate
+```
 
 The `Shelf` model represents the relationship between models. You'll recognize those from earlier `rails g model` statement. You need to introduce an enum for different types of shelves. 
 
@@ -509,6 +524,7 @@ class Shelf < ApplicationRecord
   scope :by_user, ->(user) { where(user_id: user)} 
 end
 ```
+
 For a particular user, one book can be under only one shelf. This constrain is added via `validates` statement and this is in line with the `index` created during migration.
 
 Finally, another scope that filters shelf by a user, this can be used in controllers at a later stage.
@@ -531,6 +547,7 @@ First two statements set up a `has_many` relationship between shelves and users 
 Finally, the `User` model. It's not huge. In fact, you are not even going to store the name and image attributes to the database. That will be available when the user logs in from Auth0. The only thing you'll store within `User` model is the email.
 
 ```rb
+# app/models/user.rb
 class User < ApplicationRecord
     attr_accessor :name
     attr_accessor :image
@@ -542,6 +559,7 @@ end
 Just to hydrate the database, you can create a seed file with a list of books like this:
 
 ```rb
+# db/seeds.rb
 # Shelf.delete_all
 # Book.delete_all
 books=Book.create([
@@ -552,7 +570,8 @@ books=Book.create([
     {title: 'book5', author: 'author3'},
 ])
 ```
-Run the seeding command on a shell within the container. If you are still within the terminal that generated models, you are right where you need to be and you can skip the `docker-compose exec` and get to `rails db:seed`:
+
+Run the seeding command on a shell within the container. If you are still within the terminal that generated models and migrated db, you are right where you need to be and you can skip the `docker-compose exec` and get to `rails db:seed`:
 
 ```bash
 docker-compose exec app /bin/bash
@@ -561,8 +580,9 @@ rails db:seed
 
 This will fill the database with a list of books. In case you want to have a fresh start, you can un-comment the first two lines. Since shelf depends on book model, that one needs to be deleted first. Then all the existing books can be deleted, leaving only newly created books. Needless to say **this can cost you** dearly if you run it in production.
 
+Now that the database is ready, you can exit out of the shell within the container.
 
-Now that the database is ready, you can tell your app that such a model exists and how to respond to users when they ask for it.
+Time to tell your app that models are ready and how to respond to users when they ask for it.
 
 ### Authentication Helpers
 
@@ -657,13 +677,13 @@ end
 
 This appears to be a complex one, but in reality, all it is doing is just constructing the URL for logout with different parameters. Especially, if you piece domain, path, and query, you'd get something like `tugboat.auth0.com/v2/logout?returnTo=http://localhost:3000/&client_id=u1k...`. 
 
-**Auth0 configuration**: This is an important step where you need to configure [Auth0] client with the following **Allowed Logout URLs**:
+**Auth0 configuration**: This is an important step where you need to configure [Auth0] client with the following _Allowed Logout URLs_:
 
 ```
-http://localhost:3000/, https://bookshelfstaging.herokuapp.com/, https://shelvedbooks.herokuapp.com/
+http://localhost:3000/, https://<YOUR_STAGING_APP_NAME>.herokuapp.com/, https://<YOUR_PRODUCTION_APP_NAME>.herokuapp.com/
 ```
 
-Remember to **save changes**. 
+Use your Heroku pipeline to get actual names for those URLs above. Remember to _Save changes_. 
 
 ### Controllers
 
@@ -706,7 +726,7 @@ Plain and simple use of the information sent from Auth0. There are loads of othe
 
 As you can see, `logout` action has also been added here and it uses the `logout_url` helper function you've set up earlier.
 
-Books need a controller. That's what you'd do next.
+Books need a controller too. That's what you'd do next.
 
 ```rb
 # app/controllers/books_controller.rb
@@ -760,9 +780,15 @@ end
 
 That's a slimmed down version of the controller to make it easy to understand. Rails uses REST architecture and you can see the controller is ready to handle the usual CRUD (Create, Read, Update, Delete) operations. `before_action :authenticate_user!` takes care of authentication before any user can create/amend a book. `authenticate_user` comes from the `Auth0Helper` you've set up earlier.
 
+* The `index` method provides a list of books. The parameter `place` shows where the book is.
+* The `show` method displays a single book.
+* The `new` method routes to a form allowing you to create a new book.
+* The method `create` saves the book sent via the `new` form
+* The method `set_book` finds the current book being used for all actions (except for `index` as it involves more than one book) 
+
 `book_params` method is also an important one that protects you from any malicious extra parameters sent in by the aliens.
 
-*Note*: Just like scaffolding, you can run `rails g resources Books name:string` to generate boilerplate for necessary Model and Controllers. You'll get both HTML and JSON templates generated for you to play around. But writing your own actions helps you think more about each of the actions. Playing with both scaffolding and writing code on your own can help you learn Rails internals.
+>**Note**: Just like scaffolding, you can run `rails g resources Books name:string` to generate boilerplate for necessary Model and Controllers. You'll get both HTML and JSON templates generated for you to play around. But writing your own actions helps you think more about each of the actions. Playing with both scaffolding and writing code on your own can help you learn Rails internals.
 
 Go ahead and create another controller for shelves. This controller binds books to users. 
 
@@ -821,7 +847,9 @@ You are now ready to show off your actions to users with views.
 
 ### Views
 
-Views present information from controllers coming from models in HTML format (and also JSON if you are using scaffolding along with `jbuilder` gem). HTML files are stored in `erb` format that allows Ruby programming inside the templates before final HTML files are generated for each request.
+Views present information from controllers coming from models in HTML format (and also JSON if you are using scaffolding along with `jbuilder` gem). 
+
+HTML files are stored in `erb` format that allows Ruby programming inside the templates before final HTML files are generated for each request. It is a preprocessor for Rails views.
 
 Start from the top. `application.html.erb` is the base template for all of your Rails controllers.
 
@@ -841,9 +869,9 @@ Start from the top. `application.html.erb` is the base template for all of your 
 
 {% endhighlight %}
 
-You need to add a partial for navigation. Include that partial within this `application.html.erb` and that'll show up on all pages. By the way, that small `<%= yield %>` at the bottom is the placeholder for rest of your pages.
+Note that there is only one line you need to introduce. The line starting with `<header>`. This is to add a partial for navigation. Partial is sort of a component or piece of code that can be plugged in. You may see they resemble ReactJS components if you are coming from that end of the universe. Include that partial within this `application.html.erb` and that'll show up on all pages. By the way, that small `<%= yield %>` at the bottom is the placeholder for rest of your pages.
 
-On to the navigation partial now.
+On to the navigation partial now, you need to create a new file named `_navbar.html.erb`. The `_` prefix marks a partial file:
 
 {% highlight html %}
 <!-- app/views/layouts/_navbar.html.erb-->
@@ -863,11 +891,13 @@ On to the navigation partial now.
 </nav>
 {% endhighlight %}
 
-That's just an image and a title on the left. You can use your own logo or the one from the repository to get going. On the right, you will add links to profile and log out.
+That's just an image and a title on the left and a link to _Profile_ and _Logout_ on the right. 
+
+Place that `book.svg` file under `app/assets/images/` folder. Without that file, Rails will throw an error. You can use your own logo or the one from the repository to get going.
 
 Few more views to handle books, and you'll be done.
 
-Start with a view to creating new books.
+Start with a view to creating new books. Create folders as required based on the path given in the comments below:
 
 {% highlight html %}
 <!-- app/views/books/new.html.erb-->
@@ -878,7 +908,7 @@ Start with a view to creating new books.
 </div>
 {% endhighlight %}
 
-The view names are usually derived from controller actions. That's how Rails know which view to render.
+The view names are usually derived from controller actions. That's how Rails knows which view to render.
 
 The corresponding `new` action from controllers gives context under `@book`. That'll be used in the form partial to create a book. That's up next.
 
@@ -969,7 +999,7 @@ Final sprint. Index of all books and by their place in the shelf. This again tak
 
 That view takes care of listing all the books sent from `index` action within books controller.
 
-In addition, it has a link to add new books at the bottom. But there is a partial at the top that lists option to filter books by shelves.
+In addition, it has a link to add new books at the top. But there is a partial at the top that lists option to filter books by shelves.
 
 The `shelf_list` partial gives a list of links that will filter books.
 
@@ -1023,7 +1053,11 @@ docker-compose down
 docker-compose up
 ```
 
-Try loading http://localhost:3000/ now. It should redirect you to the login page. Once you log in, it should take you to book list.
+Try loading http://localhost:3000/ now. It should redirect you to the login page. _It may not be pretty, yet_. 
+
+It may even have previous login details retained. You can try _Logout_ and _Login_ again. Once you log in, it should take you to book list.
+
+If it does, the soul of the application is alive and kicking. You just need to _beautify_ it.
 
 ### Styles
 
@@ -1033,26 +1067,7 @@ The application views may not be very impressive at first sight. But you should 
 
 You can also use [Sass] files as Rails comes with built-in support. 
 
-For example, add a new file `home.scss`. Add following style rules. 
-
-```scss
-/* app/assets/stylesheets/home.scss */
-
-.card {
-    max-width: 18em;
-    padding: 1em;
-    border-radius: 3px;
-    box-shadow: 0 2px 4px grey;
-    text-align: center;
-    margin: 0 auto;
-    background: rgba(255,255,255,.5);
-}
-
-```
-
-That immediately center aligns text with box shadow and moves the whole section to the center of the screen.
-
-Another example, the top navigation.
+For example, add a new file `header.scss`. Add following style rules. 
 
 ```scss
 /* app/assets/stylesheets/header.scss */
@@ -1076,9 +1091,30 @@ nav {
 
 ```
 
+If you are logged in and on the books index page, that change should reflect on the page navigation bar. Adding new files sometimes might need a manual refresh instead of live reloading. But once you've added a new file, changes to the files are automatically applied to the view on the browser.
+
+Another example, the Home page.
+
+```scss
+/* app/assets/stylesheets/home.scss */
+.card {
+    max-width: 18em;
+    padding: 1em;
+    border-radius: 3px;
+    box-shadow: 0 2px 4px grey;
+    text-align: center;
+    margin: 0 auto;
+    background: rgba(255,255,255,.5);
+}
+
+```
+
+The file `home.scss` should already be available. Just add those styles, save the file and on the web page, click on _Logout_ to go back go home page.
+
+
 Have a look at [CSS reference at MDN](https://developer.mozilla.org/en-US/docs/Web/CSS) if you are new to stylesheets. Also, worth checking [Sass](https://sass-lang.com/). Truly, CSS with superpowers. Apart from nesting selector styles, it has several other features. A lot of them are and will come into native CSS. 
 
-I suggest you pull stylesheets from the [repository](https://github.com/vijayabharathib/dockerized-rails-app) to save yourself some time.
+I suggest you pull stylesheets from the [repository](https://github.com/vijayabharathib/dockerized-rails-app) to save yourself some time. You'll see about 4 `.scss` files, take all of them.
 
 ### Deploy
 
@@ -1088,7 +1124,7 @@ You've done a lot of work. In fact, too many files that they should already be o
 * Watch [Heroku] deploy the app to staging. Check.
 * Open staging app and create a book. Uh ho!
 
-There is something missing. That is, you need to migrate the database schema to Heroku. Remember running `rails db:migrate`? You need to tell Heroku to run that command whenever you deploy. Heroku has a release feature mentioned in [this post](https://mentalized.net/journal/2017/04/22/run-rails-migrations-on-heroku-deploy/) will help.
+**There is something missing.** That is, you need to migrate the database schema to Heroku. Remember running `rails db:migrate`? You need to tell Heroku to run that command whenever you deploy. Heroku has a release feature mentioned in [this post](https://mentalized.net/journal/2017/04/22/run-rails-migrations-on-heroku-deploy/) will help.
 
 You need to set up a `Procfile` within the project root directory.
 
@@ -1100,14 +1136,15 @@ release: rails db:migrate
 The first one `web` declares the web server. The second one `release` is the one that will be executed once build is completed.
 
 
-**More Options** menu gives you control over a console within Heroku. You can use that console to run rails commands such as `rails db:create`, `rails db:rollback` and `rails db:migrate` when required. You should indeed run `rails db:seed` to hydrate the staging database. 
+_More Options_ menu on Heroku gives you control over a console within Heroku. You'll find an option _Run Console_ within the application (staging or production) page. You can use that console to run rails commands such as `rails db:create`, `rails db:rollback` and `rails db:migrate` when required. You can ignore `rails db:migrate` as it is automated as part of the release. But you should indeed run `rails db:seed` to hydrate the staging database. 
 
-
-Open staging environment in the browser. You can do this from Heroku page itself. Try and create a book. Things should work like they've worked in development now.
+Open staging environment in the browser. You can do this from Heroku page itself. Try and create a book manually. Move books around shelves. Things should work like they've worked in development now.
 
 The reason? `release` tag in the `Procfile` migrated the database schema. So users and books can be created without any trouble.
 
 Great! Take a break, you deserve it!
+
+And you know how to take this to production? Remember creating a pull request between _staging_ and _master_ branches on [GitHub]? Same process should push things to production on Heroku, once you merge the pull request.
 
 **Logs:**
 There are three logs on Heroku that you'll find useful.
@@ -1119,7 +1156,7 @@ Use these to find out what's happening when you run into an issue.
 
 ## Debugging
 
-You need a few more blades in your swiss army knife to debug the application. You can use these 4 options depending on what you are debugging.
+Here is a bonus when you run into issues. You need a few more blades in your swiss army knife to debug the application. You can use these 4 options depending on what you are debugging.
 
 ### Debug Information on Views
 
@@ -1252,7 +1289,7 @@ But that's not all, your journey ends only when you tweak the workflow to improv
 
 I invite you to share your thoughts. Anything that can be improved or anything that could speed things up? Share that in the discussion, it will benefit all of us. See you there.
 
-Finally, thanks to [Bruno Krebs](https://twitter.com/brunoskrebs) for his excellent insights during the review. 
+Finally, thanks to [Bruno Krebs](https://twitter.com/brunoskrebs) for his excellent insights and attention to details during the review. 
 
 [GitHub]: https://github.com/
 [Travis]: https://travis-ci.org/
