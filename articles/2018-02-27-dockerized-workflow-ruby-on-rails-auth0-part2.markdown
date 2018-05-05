@@ -97,7 +97,11 @@ docker-compose up --build
 
 ### Secrets Need To Stay So
 
-The **client secret** key from Auth0 should be available for the Rails app, but that has to be a secret. One way is to add it as a plain environment variable. But secrets as environment variables are [not so safe](https://www.engineyard.com/blog/encrypted-rails-secrets-on-rails-5.1) either. Rails 5.2 gives an option to encrypt secrets, store them in a file and commit them to version control. You can read more about it on [Engine Yard](https://www.engineyard.com/blog/rails-encrypted-credentials-on-rails-5.2).
+The **client secret** key from Auth0 should be available for the Rails app, but that has to be a secret. One way is to add it as a plain environment variable. But secrets as environment variables are [not so safe](https://www.engineyard.com/blog/encrypted-rails-secrets-on-rails-5.1) either. 
+
+Rails 5.2 gives an option to encrypt such secrets, in the name of **credentials**, store them in a file and commit them to version control. You can read more about it on [Engine Yard](https://www.engineyard.com/blog/rails-encrypted-credentials-on-rails-5.2). These credentials are stored in `credentials.yml.enc` while the key to decrypt the file is stored within `master.key` file. These two files are _automatically_ generated when you created a new Rails project. 
+
+>**Tip**: It is very important that you do not loose `master.key` file. It is not and should not be added to the repository. Rails project adds `master.key` to `.gitignore` by default, so that it is excluded from version control. There is no way of recovering it if you permanently delete the file. In such cases, you might have to delete `credentials.yml.enc` and run `rails credentials:edit` to generate both the files from scratch. 
 
 While the container is up and running on a terminal, Get into another terminal to access shell within the container:
 
@@ -105,7 +109,7 @@ While the container is up and running on a terminal, Get into another terminal t
 docker-compose exec --user $(id -u):$(id -g) app /bin/bash
 ```
 
-That takes you to the terminal within the container. Then you'll have a chance to set up secrets.
+That takes you to the terminal within the container. Then you'll have a chance to set up credentials.
 
 Client secret is the value from the Auth0 Application you just created (*BookShelf* in this case). You can find this and the other properties in the same _Settings_ tab where you added the callback URL.
 
@@ -120,8 +124,8 @@ That command will warn you about `nano` editor not having enough permission. Not
 ```yml
 # ....
 auth0:
-  client_id: <YOUR_AUTH0_CLIENT_ID>
-  secret: <YOUR_AUTH0_CLIENT_SECRET>
+ client_id: <YOUR_AUTH0_CLIENT_ID>
+ secret: <YOUR_AUTH0_CLIENT_SECRET>
 
 ```
 
@@ -142,7 +146,7 @@ You can now `exit` out of the shell.
 
 To instruct rails to load secrets from the encrypted file. So, you need to uncomment `config.require_master_key = true` in the `config/environments/production.rb` file.
 
-You will also set up the `RAILS_MASTER_KEY` on Heroku environment. But that can wait, as the local environment has the master key in the file `master.key` (and that **should not** be included in version control). Rails by default adds the file to `.gitignore` for you.
+You will also set up the `RAILS_MASTER_KEY` on Heroku environment. But that can wait, as the local environment has the master key in the file `master.key`.
 
 ### Add Middleware Strategy
 
